@@ -1,0 +1,145 @@
+#--------------------------------------------------
+# About This Configuration File
+#--------------------------------------------------
+# This configuration file is used by the snakefile_SRAsearch workflow.
+# It defines the parameters for searching and downloading data from the SRA database
+# It uses pysradb and sra-tookit for this process
+
+
+#-----------------------------------------------
+# The Workflow Process
+#-----------------------------------------------
+# The workflow is a two-step process, as defined in the snakefile:
+# The Broad Search: Uses the query in the search_filters section to performs a broad search against the SRA database. It generates a temporary file containing all metadata that matches eg "Caloramator".
+# The Filtering Step: This broad temporary file is filtered using the library_selection list.
+# All fields from pysradb.py search -h, (help file) are supported.
+# Three options are provided. Uncomment one option at a time to run your workflow
+
+
+#------------------------------------------------------------------
+# Option 1: Search SRA for a specific query and download metadata
+#------------------------------------------------------------------
+
+# This section defines the search criteria. The 'limit' (max) is applied to the
+# results of the 'filters'. For example, the query will first filter by organism
+# and date, and then limit the final output to the specified max number.
+
+#search_filters: # ALWAYS make sure that the options that will be used are uncommented, including this line 
+#  query: "hot springs" # replace with"uncultured bacteria" OR "human gut"OR "cow rumen"OR "soil bacteria" hot springs". String used as output file name.
+#  Uncomment or comment out any of the filters to limit the number of hits
+#  max: 1000 # The maximum number of hits, can be any number from 1 to >1, Default = 20
+#  publication-date: "01-01-2023:01-09-2025" # Limit the numbers by publication dates; format dd-mm-yyyy:dd-mm-yyyy
+#  strategy: "WGS" # Experiment Library strategy- WGS, WCS, AMPLICON, CLONE, CLONEEND, chIP-Seq, Synthetic-Long-Read, RNA-Seq, WGS, miRNA-Seq, ssRNA-Seq 
+#  source: "genomic" # Experiment Library source- genomic single cell, metagenomic, genomic, metatranscriptomic, other, synthetic, transcriptomic, transcriptomic single cell, virla RNA
+#  selection: "random"   # Experiment Library selection- random, PCR, random PCR, size fractioation, unspecified, other, cdna, chip, dnase, pcr, polya
+#  platform: ["ILLUMINA","PACBIO_SMRT"]  # Experiment Sequencing platform, e.g., ILLUMINA, PACBIO_SMRT, MINION, ABI SOLID, BGISEQ, Capillary, Complete genomics, Ion Torrent, Oxford Nanopore, Ion T..
+#  layout: "SINGLE"      #Library layout. Accepted input: SINGLE, PAIRED
+#  organism: "" # Scientific name of the sample organism "Bacillus", "Clostridum"
+#  verbosity: 3 # 0, 1, 2, 3 (run accessions only, default, everything respectively)
+#  mbases: "1000"   # Size of the sample rounded to the nearest megabase
+#  title: "Human Microbiome Project"  # Experiment title
+#  accession:"SRR6898940" # Searcb by single or multiple accession numbers ["SRR5838882", "SRR25073980"]
+
+#  NOTE: Use only db and geo_query plus other flags from 'pysradb search --geo-info' and https://www.ncbi.nlm.nih.gov/geo/info/qqtutorial.html for more details regarding geo database 
+#  db: "geo" # Databae to search ("sra", "ena" or "geo")
+#  geo_query: "hot spring sediment" # use free text eg "smoking cancer", "soil", "sediments"
+
+# Example 1A: (Uncomment before running the pipeline)
+#search_filters: # ALWAYS imake sure that this line is uncommented for all options. 
+#  query: "hot springs" # replace with"uncultured bacteria" OR "human gut"OR "cow rumen"OR "soil bacteria" hot springs"
+#  max: 1000 # The maximum number of hits, can be any number from 1 to >1, Default = 20
+#  source: "genomic" # Experiment Library source- genomic single cell, metagenomic, genomic, metatranscriptomic, other, synthetic, transcriptomic, transcriptomic single cell, virla RNA
+#  selection: "random"   # Experiment Library selection- random, PCR, random PCR, size fractioation, unspecified, other, cdna, chip, dnase, pcr, polya
+#  platform: ""  # Experiment Sequencing platform, e.g., ILLUMINA, PACBIO_SMRT, MINION, ABI SOLID, BGISEQ, Capillary, Complete genomics, Ion Torrent, Oxford Nanopore, Ion T..
+#  organism: "" # Scientific name of the sample organism "Bacillus", "Clostridum"
+
+# Example 1B: (Uncomment before running the pipeline)
+#search_filters: # ALWAYS make sure that this line is uncommented for all options. 
+#  query: "hot water" # replace with"uncultured bacteria" OR "human gut"OR "cow rumen"OR "soil bacteria" hot springs"
+#  max: 1000 # The maximum number of hits, can be any number from 1 to >1, Default = 20
+#  source: "genomic" # Experiment Library source- genomic single cell, metagenomic, genomic, metatranscriptomic, other, synthetic, transcriptomic, transcriptomic single cell, virla RNA
+#  selection: "random"   # Experiment Library selection- random, PCR, random PCR, size fractioation, unspecified, other, cdna, chip, dnase, pcr, polya
+#  platform: ""  # Experiment Sequencing platform, e.g., ILLUMINA, PACBIO_SMRT, MINION, ABI SOLID, BGISEQ, Capillary, Complete genomics, Ion Torrent, Oxford Nanopore, Ion T..
+#  organism: "" # Scientific name of the sample organism "Bacillus", "Clostridum"
+#  layout: "SINGLE"      #Library layout. Accepted input: SINGLE, PAIRED
+
+# Example 2A: (Uncomment befors running the pipeline)
+#search_filters: # ALWAYS imake sure that this line is uncommented for all options.
+#  query: "rumen" # replace with"uncultured bacteria" OR "human gut"OR "cow rumen"OR "soil bacteria" hot springs"
+#  max: 1000 # The maximum number of hits, can be any number from 1 to >1, Default = 20
+#  source: "genomic" # Experiment Library source- genomic single cell, metagenomic, genomic, metatranscriptomic, other, synthetic, transcriptomic, transcriptomic single cell, virla RNA
+#  verbosity: 3 # 0, 1, 2, 3 (run accessions only, default, everything respectively)
+#  layout: "SINGLE"      #Library layout. Accepted input: SINGLE, PAIRED
+
+# Example 2B: (Uncomment before running the pipeline)
+#search_filters: # ALWAYS imake sure that this line is uncommented for all options.
+#  query: "rumen" # replace with"uncultured bacteria" OR "human gut"OR "cow rumen"OR "soil bacteria" hot springs"
+#  max: 1000 # The maximum number of hits, can be any number from 1 to >1, Default = 20
+#  source: "genomic" # Experiment Library source- genomic single cell, metagenomic, genomic, metatranscriptomic, other, synthetic, transcriptomic, transcriptomic single cell, virla RNA
+#  verbosity: 3 # 0, 1, 2, 3 (run accessions only, default, everything respectively)
+#  publication-date: "01-01-2023:01-09-2025" # Limit the numbers by publication dates; format dd-mm-yyyy:dd-mm-yyyy
+
+# Example 3:
+#search_filters:
+#  query: "Thermoanaerobacter"
+#  organism: "Bacillus"
+#  layout: "PAIRED"
+#  platform: "ILLUMINA"
+#  source: "genomic"
+#  verbosity: 3 
+#  max: 50
+#  detailed:
+
+# Example 4:
+#search_filters:
+#  source: "metagenome viral rna"
+#  detailed:
+
+# Example 5:
+# From the Bacillaceaea.csv, use study_accession to fetch metadata (#3, below) for a specific SRA project (e.g., SRP123456)
+#search_filters:
+#  query: "Bacillaceae"
+#  source: "genomic"
+#  detailed:
+#  max: 50
+#  verbosity: 2 
+
+# Example 6:
+search_filters:
+  query: "rumen"
+  organism: "Clostridium"
+  source: "genomic"
+  detailed:
+  max: 50
+  verbosity: 2
+
+
+#------------------------------------------------------------------
+# 2. Download fastq files for specific SRA run accessions
+#------------------------------------------------------------------
+# This new, simplified section allows you to download any SRA accession
+# using the fast 'kingfisher' (Aspera) tool.
+#
+# Simply add the SRA run accession numbers to the appropriate list below.
+# - paired_end: For reads that should result in two files (e.g., *_1.fastq.gz and *_2.fastq.gz).
+# - single_end: For reads that result in a single file (e.g., *.fastq.gz).
+
+#accessions_to_download:
+#  paired_end:
+#    - "SRR8113456"  # Example: Illumina MiSeq
+#    - "SRR5838882"  # Add other paired-end accessions here
+#    - "SRR25073980"
+
+#  single_end:
+#    - "SRR8113455"  # Example: Nanopore
+
+# 3. Fetch metadata for a specific SRA project (e.g., SRP123456)
+# Use sra_project and metadata_options flags (with appropriate spaces)
+# The `detailed` flag is a metadata option
+#sra_project: "SRP166933" 
+#metadata_options:
+#  detailed: true
+#  assay: true
+#  desc: true
+#  expand: true
+

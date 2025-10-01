@@ -1,0 +1,309 @@
+#Merged pixi.toml for OGRI, MiGA, GToTree, bit, and other bioinformatics tools.
+# This file defines the entire software environment for your microbial taxonomic workflows.
+
+[project]
+name = "taxonomy_bundle" # New, more encompassing name for the combined project
+version = "0.1.0"
+description = "An Integrated bioinformatics guide for taxonomy analysis for OGRI, MiGA, GToTree, bit, and various bioinformatics tools including PHANTASM, DFAST-QC, and NCBI utilities."
+authors = ["Bharat Patel <bharatgu19@gmail.com>"] # Update with your name if desired
+
+# Channels where Pixi will look for packages.
+# The order can sometimes matter for dependency resolution.
+# - "astrobiomike": Specific channel often needed for GToTree and related tools.
+# - "conda-forge": A vast community-driven channel for many scientific and general-purpose packages.
+# - "bioconda": The primary channel for bioinformatics software, built on conda-forge.
+channels = ["rpetit3", "astrobiomike", "conda-forge", "bioconda"]
+
+# Platforms your project supports.
+# "linux-64" for 64-bit Linux systems (like Ubuntu).
+platforms = ["linux-64"]
+
+# [dependencies] section: List all the software packages required for your project.
+# The "*" means Pixi will install the latest compatible version that satisfies all constraints.
+# Specific versions (e.g., "==1.1.3") pin to an exact release is useful for reproducibility
+# but sometimes causes conflicts if not all other dependencies can align.
+[dependencies]
+# Core Python Environment
+python = "*"              # The Python interpreter, as most tools are Python-based or have Python wrappers.
+certifi = "*"             # Ensures up-to-date SSL certificates for secure network communication.
+
+# PHANTASM and its external dependencies (installed via Bioconda/Conda-forge)
+# Based on the requirements.txt you found, specific versions are pinned for compatibility.
+# We are now relying on the conda-packaged 'phantasm' which should correctly find its own tools.
+phantasm = "*"            # PHANTASM (installed from Bioconda) using "*" for latest compatible.
+blast = "*"               # NCBI BLAST+ suite, required by PHANTASM and other tools.
+muscle = "*"              # MUSCLE Multiple Sequence Alignment tool.
+fasttree = "*"            # FastTree for phylogenetic tree inference.
+iqtree = "*"              # IQ-TREE for maximum likelihood phylogenetics.
+mafft = "*"               # MAFFT for multiple sequence alignment.
+phantasm-xenogi = "*"     # The xenoGI dependency for PHANTASM, available as a Bioconda package.
+biopython = "*"           # Fundamental bioinformatics library for Python. (NOTE: Bioconda Phantasm expects this, not the old 'Bio' package)
+parasail-python = "*"     # UNPIN THIS: Allow Pixi to find a compatible version.
+scipy = "==1.9.3"         # Pinned version from requirements.txt
+textdistance = "==4.5.0"  # Pinned version from requirements.txt
+numpy = "==1.23.5"        # This is the pinned version from requirements.txt
+semver = "*"              # Semantic Versioning, sometimes a dependency for Python projects.
+bakta = ">=1.10.1,<1.11.2" 
+bioconductor-genomeinfodb = "*"      #added for pyani and phantasm
+bioconductor-genomeinfodbdata = "*"  #added for pyani and phantasm
+xz = "*"             # The llzma library a development library for LZMA compression of xz utilities.
+
+# R and R-related packages for PHANTASM and general analysis
+r-base = "*"              # Base R installation.
+r-tidyverse = "*"         # Collection of R packages designed for data science.
+#r-decipher = "*"         # R package for phylogenetics, often on Bioconductor (via Bioconda).
+r-dendextend = "*"        # R package for manipulating and visualizing dendrograms.
+r-ape = "*"               # R package for phylogenetic analysis.
+r-gplots = "*"            # R package for plotting data.
+rpy2 = ">=3.5.5,<3.6"     # Pinned at least 3.5.5 but less than 3.6 to allow for minor updates.
+#r-ggplot2 = "*"           # For visualizing phylogenetic trees
+bioconductor-ggtree = "*" # For visualizing phylogenetic trees
+#bioconductor-treeio = "*" # For visualizing phylogenetic trees
+
+
+# General Bioinformatics Tools and Libraries
+gawk = ">=4.0.0"          # GNU Awk, a powerful text processing tool.
+prodigal = ">=2.6.3"      # PROkaryotic DYnamic Glimmer ALgorithm, for gene prediction.
+ezaai = "*"              # A tool for Average Amino Acid Identity (AAI) calculations. Requires Java openjdk >=8,<9) but nextflow requires openjdk ==21. 
+pyani = "==0.2.13.1"      # Changed pinned version pyani = "==0.2.12" from requirements.txt 
+#aniclustermap = "*"       # For visualizing ANI results.
+#nextflow = "*"           # Workflow management system. Java (open-jdk) conflict- EzAAI (openjdk >=8,<9) vs nextflow (openjdk ==21).
+pkg-config = ">=0.29.2,<0.30" # Helper for finding libraries during compilation.
+compilers = ">=1.9.0,<2"  # Essential for compiling some tools from source if needed by dependencies.
+sqlite = ">=3.50.1,<4"    # Lightweight database, used by many bioinformatics tools.
+hmmer = ">=3.4,<4"        # HMMER suite for protein sequence analysis.
+bedtools = ">=2.31.1,<3"  # Toolkit for genomic interval manipulation.
+bbmap = "*"               # = bbtools. Use sendsketch.sh for taxonomy from fastqc reads or assembled-contigs 
+mcl = ">=22.282,<23"      # MCL (Markov Cluster Algorithm) for protein clustering.
+barrnap = ">=0.9,<0.10"   # Rapid ribosomal RNA predictor.
+idba = ">=1.1.3,<2"       # IDBA-UD, a de novo assembler for single-cell and metagenomic data.
+faqcs = ">=2.10,<3"       # Fast Accurate Quality Control for Sequence data.
+seqtk = ">=1.5,<2"        # Toolkit for processing FASTA/Q sequences.
+fastp = ">=1.0.1,<2"      # Ultra-fast all-in-one FASTQ preprocessor.
+fastqc = "*"              # Read quality assesment 
+#falco = ">=1.2.5,<2"      # Fast and accurate genome assembly quality assessment.
+trnascan-se = ">=2.0.12,<3" # tRNAscan-SE for tRNA gene prediction.
+pyhmmer = ">=0.11.0,<0.12" # Python bindings for HMMER.
+pyrodigal = ">=3.6.3.post1,<4" # Python bindings for Prodigal.
+spades = ">=4.2.0"         # Installed after dfast_qv 1.0.7 was installed 
+seqkit = "*"               # Installed after dfast_qv 1.0.7 was installed 
+quast = "*"                # Installed after dfast_qv 1.0.7 was installed
+unicycler = "*"            # Use instead of spades for long + short reads (hybrid) assembly
+autocycler = "*"           # Automated consensus assembly   
+flye = "*"                 # long read assembler
+canu = "*"                 # long read assembler
+pilon = "*"                # polish draft assembly 
+racon = "*"                # polishe draft asembly
+raven = "*"                # long read assembly
+#medaka = "==1.13.0"        # polish draft assembly but cannot be installe
+
+# NCBI Data Access Tools
+ncbi-genome-download = "*" # For bulk downloading genomes from NCBI.
+entrez-direct = "*"        # EDirect, command-line tools for querying NCBI databases.
+#sra-tools = "==3.2.1"     # installed system wide with sudo and path set in config.yaml for downloading SRA data files.
+ncbi-datasets-cli = "*"    # Downloads datasets from ncbi
+pysradb = "*"              # Installed 18 Aug
+ffq = "*"                  # Similar to pysradb
+aspera-cli = "*"           # works with ascp 
+aspera-connect = "==3.9.6" # ascp for sra data transfer
+kingfisher = "*"           # Download sra data
+srahunter = "==0.0.9"      # Alternate downloader for sra datasets
+
+# DFAST-QC and its dependencies
+dfast_qc = "==1.0.7"      # DFAST-QC for quality control of DFAST output.
+mash = "*"                # MASH for rapid genome sketching and distance estimation.
+skani = "*"               # Fast and accurate ANI estimation.
+gsl = ">=2.6"             # GNU Scientific Library, a common dependency for scientific software.
+
+# CheckM and ETE3 (often used for phylogenetic tree visualization)
+checkm-genome = "==1.2.2" # CheckM for assessing genome quality.
+ete3 = "==3.1.2"          # ETE Toolkit for phylogenetic tree manipulation and visualization.
+pyqt = "*"                # PyQt, Python bindings for the Qt application framework (GUI for ETE3).
+more-itertools = "*"      # Extended tools for iterables, often a dependency for Python projects.
+peewee = "*"              # A small, expressive ORM for Python.
+
+# GToTree and BIT (Bacterial Isolate Tool)
+bit = "*"                 # The Bacterial Isolate Tool.
+#bit = "==1.12.3"         # This is the latest version wjich takes care of the GTDB database "
+gtotree = ">=1.8.4,<2"    # GToTree for high-quality phylogenetic trees from genome data.
+pyfastx = "*"             # A Python library for parsing FASTA/Q files, required by 'bit'.
+ipython = "*"             # Interactive Python shell, useful for development and exploration.
+pandas = ">=1.0"          # Data manipulation and analysis library, specifying minimum version.
+xlrd = "=1.2.0"           # For reading Excel files, specifying an exact version for stricter adherence to GAN docs.
+
+# ========================================================================
+# --- MiGA (Microbial Genomes Atlas) Specific Dependencies & Tasks --- 
+# Note: External MiGA auxiliary tools (MyTaxa, KronaTools, RDP Classifier) 
+# are NOT managed by Pixi's package manager. Their installation and 
+# path configuration are handled manually via '~/.miga_modules' as 
+# detailed in the comprehensive bioinformatics guide. 
+# ========================================================================= 
+ruby = ">=3.4.4,<4"         # Provides the Ruby interpreter for MiGA's gem installation 
+openjdk = "*"               # Required for RDP Classifier (Java) and EzAAI
+fastplong = ">=0.4.1,<0.5"
+#aspera-cli = ">=4.20.0,<5"
+
+
+# [pypi-dependencies] section:
+# Use this for Python packages that are only available on PyPI or a specific Git repository,
+# and are NOT available through Conda channels.
+[pypi-dependencies]
+pyorthoani = "*" # Custom PyPI package for orthoANI calculations.
+
+
+# [target.<platform>.activation.env] section:
+# This allows you to set environment variables that will be active
+# only when this Pixi environment is activated (e.g., via 'pixi shell').
+# These variables are specifically for the Linux platform.
+[target.linux.activation.env]
+# Sets the default directory where GToTree might look for HMM files.
+# While GToTree often defaults to its internal HMMs, setting this here
+# configures your environment for potential custom HMM usage.
+# IMPORTANT: Ensure this directory exists on your system: /media/bharat/volume1/db/GToTree_HMMs/
+# GToTree_HMM_dir = "/media/bharat/volume1/db/GToTree_HMMs/"
+# NCBI API Key: Highly recommended for frequent NCBI queries to avoid rate limits.
+# Replace with your actual NCBI API Key. Be cautious if sharing this file publicly.
+NCBI_API_KEY = "2dc3b51f85186cbdd416e775fef51a95fa09" # REPLACE THE XXXXXXX WITH YOUR KEY!
+
+
+# ------ IMPORTANT: PATH Modifications for general tools but NOT FOR MIGA ------
+# Only include paths for tools that Pixi doesn't install and are NOT managed by ~/.miga_modules. 
+# MiGA itself manages KronaTools, Krona, My Taxa, and RDP Classifier, & hence REMOVED from here. 
+# Keep only if you have other custom executables NOT related to MiGA's external setup. 
+# Example (if you had other custom scripts outside your project dir): 
+# PATH = "$PATH:/path/to/other/custom/scripts"
+
+
+# Add the GTDB_URL_PREFIX here to replace outdated https://data.gtdb.ecogenomic.org/:
+GTDB_URL_PREFIX = "https://data.ace.uq.edu.au/public/gtdb/data/releases/"
+
+
+# [tasks] section:
+# Define custom commands or scripts that can be easily run within the Pixi environment
+# using `pixi run <task_name>`. These tasks inherit the environment set up by Pixi.
+[tasks]
+#Install aspera connect 
+install-aspera = """
+  # Check if Aspera Connect is already installed by looking for the ascp binary
+  if command -v ascp &> /dev/null
+  then
+      echo "Aspera Connect is already installed. Skipping."
+  else
+      # Check the operating system
+      OS=$(uname -s)
+      if [ "$OS" == "Darwin" ]; then
+          # macOS 
+          curl -O https://download.asperasoft.com/download/sw/connect/4.2.6/ibm-aspera-connect-4.2.6.223.dmg
+          hdiutil attach "ibm-aspera-connect-4.2.6.223.dmg"
+          sudo "/Volumes/Aspera Connect/Install Aspera Connect.app/Contents/Resources/install_dir.sh" -f --install-dir=/usr/local/aspera
+          hdiutil detach "/Volumes/Aspera Connect"
+          rm ibm-aspera-connect-4.2.6.223.dmg
+      elif [ "$OS" == "Linux" ]; then
+          # Linux
+          curl -O https://download.asperasoft.com/download/sw/connect/4.2.6/ibm-aspera-connect-4.2.6.223.tar.gz
+          tar -xvf ibm-aspera-connect-4.2.6.223.tar.gz
+          ./ibm-aspera-connect-4.2.6.223.sh
+          rm ibm-aspera-connect-4.2.6.223.tar.gz
+      else
+          echo "Unsupported OS. Please install Aspera Connect manually."
+          exit 1
+      fi
+  fi
+"""
+
+# =========================================================================
+# --- GAN (Generate bacterial genera) Specific Tasks ---
+# 1. Setup Task: Clones the tool into the 'gan_tool' directory.
+setup-gan = "git clone https://github.com/telatin/gan gan_tool"
+
+# 2. Define the gan-genus task, corrected to use 'gan_tool' path
+# Existing gan-genus task (for general use, which will still show error without args)
+gan-genus = { cmd = "python ./gan_tool/scripts/gan-genus.py", args = ["$@"] }
+
+# 3. NEW task specifically for displaying full help, corrected to use 'gan_tool' path
+gan-genus-help = "python ./gan_tool/scripts/gan-genus.py -h"
+# =========================================================================
+
+# Define the gan-genus task
+# Existing gan-genus task (for general use, which will still show error without args)
+###gan-genus = { cmd = "python ./gan/scripts/gan-genus.py", args = ["$@"] }
+# NEW task specifically for displaying full help
+###gan-genus-help = "python ./gan/scripts/gan-genus.py -h"
+
+
+# Task for setting up OGRI_B: clones the repository and makes the script executable.
+# It clones into a sub-directory named 'OGRI' within your project root.
+setup-ogri-b = "git clone https://gitlab.pasteur.fr/GIPhy/OGRI.git OGRI && chmod +x OGRI/OGRI_B.sh"
+# Task for your custom OGRI_B shell script.
+# `bash ./OGRI/OGRI_B.sh` executes the script relative to your project root.
+# `args = ["$@"]` ensures any arguments you provide are are passed to the script.
+ogri_b = { cmd = "bash ./OGRI/OGRI_B.sh", args = ["$@"] }
+
+
+# Task for running the Conda-installed PHANTASM executable.
+# `cmd = "phantasm"` directly calls the executable found in the environment's PATH.
+# `args = ["$@"]` ensures any arguments provided to `pixi run phantasm`
+# (e.g., `pixi run phantasm getPhyloMarker -h`) are passed directly to the 'phantasm' command.
+phantasm = { cmd = "phantasm", args = ["$@"] }
+
+
+# Task for running your wgetGenBankWGS shell script.
+# Ensures the script is executed using bash and is found relative to your project root.
+wget_genbank_wgs = "bash ./scripts/wgetGenBankWGS/wgetGenBankWGS.sh"
+
+
+# ===============================================================
+# --- DFAST-QC Specific Tasks ---
+# DFAST-QC is assumed to be installed as a dependency within this Pixi environment.
+# ===============================================================
+# Task for setting up DFAST QC reference data using a RELATIVE path.
+# This assumes the 'dfast_qc' directory containing 'dqc_ref_manager.py'
+# is located directly within your 'taxonomy_bundle' project root.
+setup-dfast-qc-ref-relative = "python ./dfast_qc/dqc_ref_manager.py download"
+
+# Task for setting up DFAST QC reference data using an ABSOLUTE path.
+# User MUST provide the full path to the 'dfast_qc' directory
+# (the one containing 'dqc_ref_manager.py') as an argument.
+# Example usage: pixi run setup-dfast-qc-ref-absolute -- /home/youruser/my_custom_apps/dfast_qc
+setup-dfast-qc-ref-absolute = { cmd = "python $1/dqc_ref_manager.py download", args = ["$@"] }
+
+# Task to run the DFAST-QC tool itself.
+# Since `dfast_qc` is installed via Pixi, its executable is directly in the PATH.
+# `args = ["$@"]` allows passing any arguments (e.g., --input_fasta, --output-dir)
+# directly to the `dfast_qc` command when you run `pixi run dfast_qc-cli`.
+dfast_qc-cli = { cmd = "dfast_qc", args = ["$@"] }
+
+
+# =========================================================================== 
+# --- MiGA (Microbial Genomes Atlas) Specific Tasks --- 
+# These tasks facilitate MiGA's core operations within the Pixi environment. 
+# For manual setup and path configuration of MiGA's external auxiliary tools 
+# (MyTaxa, KronaTools, RDP Classifier) via '~/.miga_modules', 
+# please refer to the comprehensive bioinformatics guide. 
+# ============================================================================ 
+# Task to install MiGA as a Ruby Gem. 
+# Run this *after* `pixi install` to get the Ruby environment, then `pixi run install-miga-gem`. install-miga-gem = "gem install miga-base" 
+
+# Task to initialize MiGA's database and integrate paths of associated external tools. 
+# This command typically creates/updates MiGA's internal database structure 
+# and, crucially, reads ~/.miga_modules to find tools like Krona, MyTaxa, etc. 
+# IMPORTANT: Remember to replace `/path/to/your/miga_db` with your desired database location. 
+# Run this after 'install-miga-gem' and after you've set up ~/.miga_modules. 
+miga-init = { cmd = "bash -c 'source ~/.miga_modules 2>/dev/null || true && miga init --db_dir /path/to/your/miga_db'", args = ["$@"] } 
+
+# Task to run the main MiGA command-line interface. 
+# This ensures that ~/.miga_modules is sourced *before* running any 'miga' commands, 
+# allowing MiGA to find its auxiliary tools. 
+miga-cli = { cmd = "bash -c 'source ~/.miga_modules 2>/dev/null || true && miga \"$@\"'", args = ["$@"] } 
+
+# Task to prepare the MiGA applications directory. 
+# This creates the necessary directories for manual installation of MiGA's auxiliary tools. 
+# Users should run this before manually installing MyTaxa, KronaTools, etc. 
+prepare-miga-apps-dir = "mkdir -p $HOME/apps $HOME/apps/bin"
+
+
+# IMPORTANT REMINDER FOR YOUR GUIDE: 
+# Your guide should explicitly instruct users on how to: 
+# 1. Manually install KronaTools, Krona, My Taxa, and RDP Classifier into their designated ~/apps directory. 
+# 2. Configure MiGA's ~/.miga_modules file to point to these installations. 
+# Pixi's role is to manage MiGA's core dependencies (like Ruby) and provide a controlled environment # for running the `gem install` command, not to manage these auxiliary tools directly.

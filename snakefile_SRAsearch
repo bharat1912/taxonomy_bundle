@@ -1,0 +1,158 @@
+import os
+import pandas as pd
+from snakemake.shell import shell
+from itertools import product
+
+# Define the absolute path to the project directory.
+PROJECT_ROOT = os.getcwd()
+print(f"Project root is set to: {PROJECT_ROOT}")
+
+# Use a direct relative path to the config file.
+CONFIG_FILE = "config/config_SRAsearch.yaml"
+ABS_CONFIG_FILE = os.path.join(PROJECT_ROOT, CONFIG_FILE)
+configfile: ABS_CONFIG_FILE
+
+# Set the working directory for all rules.
+workdir: os.path.join(PROJECT_ROOT, "pysradb_output", "accession_data")
+
+# Define and create output directory structure.
+OUTPUT_DIR = os.path.join(PROJECT_ROOT, "pysradb_output")
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(os.path.join(OUTPUT_DIR, "search_data"), exist_ok=True)
+os.makedirs(os.path.join(OUTPUT_DIR, "project_data"), exist_ok=True)
+os.makedirs(os.path.join(OUTPUT_DIR, "accession_data"), exist_ok=True)
+os.makedirs(os.path.join(OUTPUT_DIR, "logs", "sra_download"), exist_ok=True)
+
+# Helper function to create a file-system-friendly slug from a string.
+def slugify(text):
+    if isinstance(text, list):
+        text = "_".join(text)
+    return str(text).replace(" ", "_").replace('"', '').replace(":", "_").replace(",", "_").replace("(", "").replace(")", "").replace("/", "_").replace("\\", "_").replace("__", "_")
+
+# Function to dynamically build the output filename for the search rule.
+def generate_search_filename(search_filters):
+    filename_parts = []
+    if "query" in search_filters and search_filters["query"]:
+        filename_parts.append(slugify(search_filters["query"]))
+    if "strategy" in search_filters and search_filters["strategy"]:
+        filename_parts.append(slugify(search_filters["strategy"]))
+    if "selection" in search_filters and search_filters["selection"]:
+        filename_parts.append(slugify(search_filters["selection"]))
+    base_filename = "_".join(filename_parts)
+    return os.path.join(OUTPUT_DIR, "search_data", f"{base_filename}.csv")
+
+# --- MODIFIED: This function now handles all possible targets ---
+def get_workflow_target():
+    """Dynamically determines the target file(s) based on the active config section."""
+    if "search_filters" in config:
+        return generate_search_filename(config["search_filters"])
+        
+    elif "accessions_to_download" in config:
+        # This is the new logic, integrated from the second 'rule all'
+        paired_accessions = config["accessions_to_download"].get("paired_end", [])
+        single_accessions = config["accessions_to_download"].get("single_end", [])
+        
+        all_files = []
+        for acc in paired_accessions:
+            all_files.extend([f"{acc}_1.fastq.gz", f"{acc}_2.fastq.gz"])
+        for acc in single_accessions:
+            all_files.append(f"{acc}_1.fastq.gz")
+        
+        if not all_files:
+             raise ValueError("The 'accessions_to_download' section in your config is defined but empty. Please add accessions to the lists.")
+        return all_files
+        
+    elif "sra_project" in config:
+        project_id = config["sra_project"]
+        metadata_flags = config.get("metadata_options", {})
+        if metadata_flags.get("detailed"):
+            return os.path.join(OUTPUT_DIR, "project_data", f"{project_id}_detailed_metadata.csv")
+        else:
+            return os.path.join(OUTPUT_DIR, "project_data", f"{project_id}_metadata.csv")
+
+    else:
+        raise ValueError("Please uncomment one of the options (search_filters, sra_project, or accessions_to_download) in the config file.")
+
+# --- The ONE AND ONLY 'rule all' ---
+rule all:
+    input:
+        get_workflow_target()
+
+# --- RULES ---
+
+# Define the flag map for sra_search.
+FLAG_MAP = {
+    "query": "--query", "accession": "--accession", "organism": "--organism",
+    "layout": "--layout", "mbases": "--mbases", "publication-date": "--publication-date",
+    "platform": "--platform", "selection": "--selection", "source": "--source",
+    "strategy": "--strategy", "title": "--title", "max": "--max",
+    "verbosity": "--verbosity", "db": "--db"
+}
+
+# Rule 1: Search SRA for a specific query and save metadata to a CSV.
+rule sra_search:
+    output:
+        generate_search_filename(config.get("search_filters", {}))
+    params:
+        search_flags=lambda wildcards: " ".join([
+            f"{FLAG_MAP[key]} \"{value}\""
+            for key, value in config.get("search_filters", {}).items()
+            if value and key in FLAG_MAP
+        ])
+    shell:
+        """
+        pysradb search {params.search_flags} --saveto {output}
+        """
+
+# Get accession lists for download rules
+paired_accessions = config.get("accessions_to_download", {}).get("paired_end", [])
+single_accessions = config.get("accessions_to_download", {}).get("single_end", [])
+
+# Rule 2A: Download and extract PAIRED-END SRA files using kingfisher.
+rule download_paired_fastqs:
+    output:
+        "{accession}_1.fastq.gz",
+        "{accession}_2.fastq.gz"
+    log:
+        os.path.join(OUTPUT_DIR, "logs", "sra_download", "{accession}.log")
+    params:
+        accession="{accession}"
+    threads: 16
+    wildcard_constraints:
+        accession="|".join(paired_accessions) if paired_accessions else ""
+    shell:
+        """
+        echo "Attempting to download PAIRED-END reads for {params.accession} using kingfisher"
+        pixi run kingfisher get -r {params.accession} -m ena-ascp aws-http prefetch -f fastq.gz --download-threads {threads} --extraction-threads {threads} --force &> {log}
+        """
+
+# Rule 2B: Download and extract SINGLE-END SRA files using kingfisher.
+rule download_single_fastqs:
+    output:
+        "{accession}_1.fastq.gz"
+    log:
+        os.path.join(OUTPUT_DIR, "logs", "sra_download", "{accession}.log")
+    params:
+        accession="{accession}"
+    threads: 16
+    wildcard_constraints:
+        accession="|".join(single_accessions) if single_accessions else ""
+    shell:
+        """
+        echo "Attempting to download SINGLE-END reads for {params.accession} using kingfisher"
+        pixi run kingfisher get -r {params.accession} -m ena-ascp aws-http prefetch -f fastq.gz --download-threads {threads} --extraction-threads {threads} --force &> {log}
+        """
+
+# Rule 3: Fetches metadata for a specific SRA project using `pysradb metadata`.
+rule fetch_project_metadata:
+    output:
+        os.path.join(OUTPUT_DIR, "project_data", f"{config.get('sra_project')}_detailed_metadata.csv")
+    params:
+        project_id=lambda wildcards: config.get("sra_project"),
+        metadata_flags=lambda wildcards: " ".join([
+            f"--{key}" for key, value in config.get("metadata_options", {}).items() if value
+        ]) if "sra_project" in config else None
+    shell:
+        """
+        pysradb metadata {params.metadata_flags} {params.project_id} --saveto {output}
+        """
