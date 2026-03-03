@@ -123,3 +123,4 @@ nextflow.config
 !local_data/
 local_data/*
 !local_data/.gitkeep
+config/*.bak

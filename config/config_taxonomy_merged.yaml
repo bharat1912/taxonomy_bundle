@@ -39,27 +39,9 @@ workflow: taxonomy
 #    long: "SRR5413256"  # Single-end/PacBio/Long reads
 
 # ======================================================================
-# TO DELETE THIS OPTION IF OPTION 5 WORKS ---- Option 4: Uses short reads from your lab (by passes download)
-# Uses local_fastq_paths, a unique identifier as the key/wildcard)
-# Assembly with Unicycler (modified Spades assembler)
-# ======================================================================
-# ----- Example 1. My illumina lab sample CS1BS_1 --------------------
-#local_fastq_paths:
-#   my_raw_reads_name:
-#     r1: "local_data/fastq_reads/CS1BS_1.fastq.gz"
-#     r2: "local_data/fastq_reads/CS1BS_2.fastq.gz"
-
-# ----- Example 2. My illumina lab sample NDB4Y10_AFMM4_CGATGT_L001 --- WORKS
-#local_fastq_paths:
-#   my_raw_reads_name:
-#     r1: "local_data/NDB4Y10_AFMM4_CGATGT_L001_R1.fastq.gz"
-#     r2: "local_data/NDB4Y10_AFMM4_CGATGT_L001_R2.fastq.gz"
-
-# ======================================================================
-# Option 5 NEW: Uses local_long_reads_paths, a unique identifier as the key/wildcard)
-# Uses your labs reads and by passes download
-# (Sample A) Uses short reads (filtlong = false in yaml)
-# (Sample B) Uses both short and long reads (filtlong = true in yaml)
+# Option 3: Uses your lab reads (bypasses download)
+# (Sample A) Short reads only (set long: "" below) (set long: "" below)
+# (Sample B) Short + long reads (hybrid)
 # ======================================================================
 local_long_reads_paths:
   # SAMPLE A: Short Reads ONLY (The one you are running now)
@@ -73,25 +55,6 @@ local_long_reads_paths:
 #    short_r1: "local_data/sample_B_R1.fastq.gz"
 #    short_r2: "local_data/sample_B_R2.fastq.gz"
 #    long: "local_data/sample_B_long.fastq.gz" # Rule 3 will copy the real file
-
-# ======================================================================
-# Option 5: Uses short and long reads from your lab (by passes download)
-# Uses local_long_reads_paths, a unique identifier as the key/wildcard)
-# Assembly with Unicycler
-# ======================================================================
-# ----- Example 1. My illumina lab samples  --------------------
-#local_long_reads_paths:
-#   my_hybrid_sample_local:
-#     short_r1: "local_data/sample_1.fastq.gz"
-#     short_r2: "local_data/sample_2.fastq.gz"
-#     long: "local_data/sample_long.fastq.gz"
-
-# ----- Example 2. My illumina lab samples  --------------------
-#local_long_reads_paths:
-#  my_hybrid_sample_local:
-#    short_r1: "local_data/sample_A.fastq.gz"
-#    short_r2: "local_data/sample_B.fastq.gz"
-#    long: "local_data/sample_long.fastq.gz"
 
 # #####################################################################################
 # Option Downsizing long reads using filtlong:
