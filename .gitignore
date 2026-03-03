@@ -114,3 +114,12 @@ bacLIFE/
 # busco symlink
 busco_downloads
 nextflow.config
+
+# Keep placeholder files even in ignored directories
+!local_data/.gitkeep
+!raw_data/.gitkeep
+!results/.gitkeep
+!input_reads/.gitkeep
+!local_data/
+local_data/*
+!local_data/.gitkeep
