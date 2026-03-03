@@ -4,13 +4,38 @@ A pixi-based bioinformatics workflow bundle for isolate genome taxonomy, annotat
 
 ## Prerequisites
 
-### 1. Install Git
-```bash
-sudo apt update && sudo apt install -y git
-```
+### System requirements
+- Ubuntu 24.04 LTS (Noble Numbat) — other Linux distros may work but are untested
+- 16 GB RAM minimum (32 GB+ recommended for GTDB-Tk and large assemblies)
+- 50 GB free on home partition (for pixi environments)
+- 500 GB+ external storage for databases (set as `EXTERNAL_VAULT`)
 
-### 2. Install Pixi (tested on pixi 0.55.0, Ubuntu 24.04 Noble)
-```bash
+### 1. Install system dependencies
+````bash
+sudo apt update && sudo apt install -y \
+    git \
+    curl \
+    wget \
+    tmux \
+    aria2 \
+    ruby \
+    default-jre \
+    rsync \
+    unzip \
+    build-essential
+````
+
+- **git** — clone this repository and version control
+- **curl / wget** — download databases and tools
+- **tmux** — keep large downloads running after terminal disconnect
+- **aria2** — fast multi-connection downloads (used by `download-kraken2`)
+- **ruby + gem** — required for MiGA taxonomy engine
+- **java (default-jre)** — required for AliView sequence viewer
+- **rsync** — vault sync between drives
+- **unzip / build-essential** — general build dependencies
+
+### 2. Install Pixi (tested on pixi 0.55.0)
+````bash
 curl -fsSL https://pixi.sh/install.sh | bash
 source ~/.bashrc
 pixi --version
