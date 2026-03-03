@@ -2,35 +2,53 @@
 
 A pixi-based bioinformatics workflow bundle for isolate genome taxonomy, annotation, and comparative genomics.
 
+## Prerequisites
+
+### 1. Install Git
+```bash
+sudo apt update && sudo apt install -y git
+```
+
+### 2. Install Pixi (tested on pixi 0.55.0, Ubuntu 24.04 Noble)
+```bash
+curl -fsSL https://pixi.sh/install.sh | bash
+source ~/.bashrc
+pixi --version
+```
+
+### 3. Clone the repository
+```bash
+git clone git@github.com:bharat1912/taxonomy_bundle.git
+cd taxonomy_bundle
+```
+
+### 4. Configure environment
+```bash
+cp .env.template .env
+# Edit .env with your local paths:
+# EXTERNAL_VAULT=/path/to/your/external/storage
+# PIXI_PROJECT_ROOT=/path/to/taxonomy_bundle
+nano .env
+```
+
+### 5. Install all environments
+```bash
+pixi install
+```
+This installs all pixi environments (env-a, env-b, env-busco, etc). Takes 10-30 minutes on first run.
+
+### 6. Setup vault and database links
+```bash
+pixi run setup-vault
+```
+
 ## Overview
 
-This repository provides reproducible workflows for:
-- **Long-read assembly** — Autocycler-based assembly pipeline
+Reproducible workflows for:
+- **Long-read assembly** — Autocycler-based pipeline
 - **Hybrid assembly** — Hybracter (long + short reads)
 - **Taxonomy & annotation** — GTDB-Tk, Bakta, DFAST-QC, GToTree
 - **SRA data retrieval** — Automated download and search
-
-## Requirements
-
-- [pixi](https://pixi.sh) package manager
-- External storage vault (set `EXTERNAL_VAULT` in `.env`)
-
-## Setup
-```bash
-# 1. Clone the repository
-git clone https://github.com/YOUR_USERNAME/taxonomy_bundle.git
-cd taxonomy_bundle
-
-# 2. Copy and configure environment
-cp .env.template .env
-# Edit .env with your local paths
-
-# 3. Install all environments
-pixi install
-
-# 4. Setup databases and vault
-pixi run setup-vault
-```
 
 ## Workflows
 
@@ -41,7 +59,7 @@ pixi run setup-vault
 | Taxonomy & annotation | `pixi run run-hybrid-taxonomy` | `config/config_taxonomy_merged.yaml` |
 | SRA search | `pixi run run-sra-search` | `config/config_SRAsearch.yaml` |
 
-## Dry runs (test without executing)
+## Test without data (dry runs)
 ```bash
 pixi run dry-autocycler
 pixi run dry-hybracter
@@ -72,3 +90,8 @@ taxonomy_bundle/
 ├── results/                       # Pipeline outputs (gitignored)
 └── logs/                          # Run logs (gitignored)
 ```
+
+## Tested on
+- Ubuntu 24.04 LTS (Noble Numbat)
+- pixi 0.55.0
+- x86_64 architecture
