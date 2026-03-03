@@ -1,0 +1,22 @@
+# ============================================================
+# CONFIGURATION FILE FOR BAKTA ANNOTATION
+# ============================================================
+
+bakta:
+  # Path where db will be located (relative to project directory)
+#  db: "db/bakta_DB/db"
+  db: "db_link/bakta"
+
+  # Input consensus fasta from Autocycler
+  input_fasta: "autocycler_output_graph/consensus_assembly.fasta"
+
+  # Bakta output directory
+  output_dir: "bakta_output"
+
+  # Annotation parameters
+  threads: 8
+  min_length: 200         # Minimum contig length to annotate
+  prefix: "annot"         # Default prefix for outputs
+  locus_tag: "LOCUS"      # Optional locus tag prefix
+  keep_contigs: true      # Keep original contig names
+

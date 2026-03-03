@@ -1,0 +1,168 @@
+# ============================================================
+# CONFIGURATION FILE FOR AUTOCYCLER SNAKEMAKE PIPELINE
+# Derived from autocycler_master.sh
+# USERS: EDIT TO true / false as approporpriate in: 
+# ------ 1. SRA DOWNLOAD GATE and 3. THE MASTER SWITCH  ----
+# ============================================================
+
+# ------------------------------------------------------------
+# PROJECT PATHS & DATABASE LINKS
+# ------------------------------------------------------------
+# 1. Add the central project root for GitHub portability
+paths:
+  db_root: "db_link"
+
+# 2. Update your existing paths to point THROUGH the link
+database_paths:
+  # This stays compatible with your existing Snakefile variables
+  plassembler_db: "db_link/plassembler"
+  bakta_db: "db_link/bakta"
+  dfast_ref: "db_link/dfast_qc_ref"
+
+# ------------------------------------------------------------
+# 1. SRA DOWNLOAD GATE (For NEW downloads from ENA/SRA)
+# ------------------------------------------------------------
+# These will be automatically fetched by Kingfisher
+#sra:
+#  accession: "SRR27003628"
+#  genus_name: "Anoxybacteroides"
+#  tech_tag: "pacbio_clr"
+#  genome_size: "3100000" # not"3.1m"
+
+sra:
+  accession: "SRR12989396"
+  genus_name: "Thermoaerobacillus_caldiproteolyticus"
+  tech_tag: "pacbio_clr"
+  genome_size: "3100000" # not"3.1m"
+
+#  SRR12989396:
+#    genus_name: "Thermaerobacillus"
+#    tech_tag: "pacbio_clr"
+#    genome_size: "2900000" # not "2.9m"
+
+#  SRR25836844:
+#    genus_name: "Parageobacillus"
+#    tech_tag: "pacbio_clr"
+#    genome_size: "3500000" # not "3.5m"
+
+# ------------------------------------------------------------
+# 2. LOCAL LAB GATE (For your internal Gold Standard)
+# ------------------------------------------------------------
+local_reads:
+  enabled: false   # EDIT - true for local reads BUT EDIT to false for sra reads
+  samples:
+    LAB001:
+      reads: ["input_reads/LAB001_Anoxybacillus_PacBio.fastq.gz"]
+      genus_name: "Anoxybacillus"
+      tech_tag: "pacbio_clr"
+      genome_size: "2900000" # not "2.9m"
+
+# ------------------------------------------------------------
+# 3. THE MASTER SWITCH
+# ------------------------------------------------------------
+#options:
+skip_sra_download: false    # EDIT TO 'true' for LAB reads (No download)
+                            # EDIT TO 'false' for SRA reads (Will download)
+read_type: "pacbio_clr"     # ont_r10 or pacbio_clr
+skip_existing: true
+
+# ------------------------------------------------------------
+# DIRECTORY STRUCTURE
+# ------------------------------------------------------------
+directories:
+  input_reads_dir: "input_reads"                    # SRA downloads go here
+  subsampled_read_dir: "subsampled_reads"           # Subsampled reads for assemblers
+  assembly_input_dir: "autocycler_input_assemblies" # Assemblies are generated here
+  autocycler_dir: "autocycler_output_graph"         # Compressed graph, clusters, final output
+
+# ------------------------------------------------------------
+# PROCESSING PARAMETERS
+# ------------------------------------------------------------
+parameters:
+  subsample_count: 4  # Number of subsamples per long-read set
+  threads: 8          # Threads per assembler
+  kmer_size: 51       # Only wtdbg2 uses kmers BUT it is already included in autocycler helper function
+  cluster_cutoff: 0.2 # Cutoff for clustering contigs BUT not used in autocycler
+  plassembler_args: "--keep_chromosome"   # Custom arguments passed to Plassembler
+
+# --- CLUSTERING & QUALITY THRESHOLDS ---
+# NOTE: These parameters resolve the "Empty Result Conflict" for poor data.
+# LOWERING these values (e.g. to 1) will prevent pipeline crashes but will 
+# INCREASE the number of contigs and potentially REDUCE assembly quality.
+# Use stringent defaults (5/3) for Gold Standard lab samples.
+clustering:
+  min_assembly_count: 3  # Primary lever. Times a contig must be independently assembled to pass
+  min_cluster_size: 2    # Minimum number of assemblies required to form a cluster
+  max_error_rate: 0.05   # Maximum allowed divergence during clustering
+
+# ------------------------------------------------------------
+# DATABASE PATHS (Set by Pixi Environment Variable)
+# ------------------------------------------------------------
+#database_paths:
+  # Snakemake reads the environment variable set by Pixi's activation block.
+  # This ensures the path is correct for any user who runs 'pixi run snakemake'.
+  #  plassembler_db: "db/plassembler_db/"  # Must exist as a dir, contains plasmid references
+
+# ------------------------------------------------------------
+# ASSEMBLERS TO RUN
+# Order does not mater; pipeline handles everything
+# ------------------------------------------------------------
+assemblers:
+  - flye        # Can handle ONT/PacBio, cannot handle duplicate reads → uses original subsamples
+  - canu        # Works with renamed reads
+  - metamdbg
+  - miniasm
+  - myloasm     # experimental, uses kmer
+  - necat
+  - nextdenovo 
+  - raven
+  - redbean     # wtdbg2, uses kmer
+  - plassembler # Special plasmid assembler
+  - hifiasm
+#  - shasta      # The assembler is not part of autocycler helper function 
+  - lja         # uses kmer, runs with pixi run -e env-lja
+
+# ------------------------------------------------------------
+# POLISHERS (UNUSED as they are currently handled inside assembler blocks)
+# ------------------------------------------------------------
+polishers:
+  - minipolish
+  - NextPolish
+  - racon
+  - medaka
+
+# ------------------------------------------------------------
+# ASSEMBLER SELECTION STRATEGY
+# ------------------------------------------------------------
+mode:
+# permissive       = run all assemblers unless *physically impossible*
+# semi-permissive  = run only those listed as compatible with detected read_type
+  assembler_selection: "permissive"   # options: permissive | semi-permissive
+
+# ------------------------------------------------------------
+# ASSEMBLER COMPATIBILITY RULES
+# Used when mode: semi-permissive is selected
+# ------------------------------------------------------------
+assembler_compatibility:
+  flye:        ["ont_r9", "ont_r10", "pacbio_clr"]
+  canu:        ["ont_r9", "ont_r10", "pacbio_clr", "pacbio_hifi"]
+  metamdbg:    ["ont_r9", "ont_r10", "pacbio_clr", "pacbio_hifi"]
+  miniasm:     ["ont_r9", "ont_r10", "pacbio_clr"]      # requires minimap2 overlaps
+  myloasm:     ["ont_r9", "ont_r10"]
+  necat:       ["pacbio_clr"]
+  nextdenovo:  ["pacbio_clr", "pacbio_hifi"]
+  raven:       ["ont_r9", "ont_r10", "pacbio_clr"]
+  redbean:     ["ont_r9", "ont_r10", "pacbio_clr"]
+  plassembler: ["ont_r9", "ont_r10", "pacbio_clr", "pacbio_hifi"]  # runs on cleaned contigs, permissive by design
+  hifiasm:     ["pacbio_hifi"]
+  lja:         ["pacbio_hifi"]
+  shasta:      ["ont_r9", "ont_r10"]
+
+# ------------------------------------------------------------
+# ASSEMBLER WEIGHTS (for clustering / consensus)
+# ------------------------------------------------------------
+weights:
+  plassembler_cluster_weight: 3   # Give extra clustering weight to circular contigs
+  canu_consensus_weight: 2        # Extra consensus weight for Canu contigs
+  flye_consensus_weight: 2        # Extra consensus weight for Flye contigs
+

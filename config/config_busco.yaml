@@ -1,0 +1,35 @@
+# ============================================================
+# BUSCO unified configuration (YAML-only control)
+# ============================================================
+busco:
+  enabled: true
+  input_source: "genome"
+  threads: 16
+
+  # GitHub-safe path for the GTDB lookup
+  # Points to the symlink in your repo: db_link/gtdb/gtdb_taxonomy.tsv
+  gtdb_taxonomy_path: "db_link/gtdb/gtdb_taxonomy.tsv"
+
+  # Two modes: auto (GTDB-lookup) or manual (lineage_dataset)
+  lineage_strategy: "auto" 
+
+  # AUTO scope: "prok" is recommended for your bacillus/lab strains
+  auto_scope: "prok"
+
+  # MANUAL mode dataset (ignored if strategy is auto)
+  lineage_dataset: "bacillales_odb12"
+
+  # Internal BUSCO INI
+  config_ini: "config/config_busco.ini"
+
+  ############################################################
+  # USER NOTES / REMINDERS
+  ############################################################
+  # - Auto mode will use genus.txt per sample to determine lineage.
+  # - If genus.txt is unknown, BUSCO defaults to 'bacteria_odb12'.
+  # - Once enough info is available (e.g., phylum-level ID), you can:
+  #       1) switch lineage_strategy to "manual"
+  #       2) set lineage_dataset to the correct lineage
+  #       3) re-run BUSCO for more precise results.
+  # - Use --list-datasets to check available BUSCO datasets:
+  #       pixi run -e env-busco busco --list-datasets

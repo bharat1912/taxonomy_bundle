@@ -1,0 +1,181 @@
+workflow: taxonomy
+
+# #####################################################################################
+# Four (4) Input Scenarios (Optional/Commented Out)
+# Uncomment only the option that is used and comment out those that are not used
+# Only one option can be used at a time
+# The indentation must be 2 spaces per level
+# #####################################################################################
+
+# ======================================================================
+# Option 1: Download short reads only
+# Uses sra_accessions, a unique identifier as the key/wildcard
+# Pipeline detects single or paired end reads
+# Runs single OR multiple SRR (one after another)
+# Assembly with Unicycler (modified Spades assembler)
+# ======================================================================
+# --- Example 1. T.etahanolicus JW200, illumina paired-end ------------
+#sra_accessions: ["SRR8113456"]
+
+# --- Example 2. Two Acetobaceter str. analysed one after another ----  
+#sra_accessions: ["SRR25073979", "SRR25073980"] 
+
+# ======================================================================
+# Option 2: Download short and long reads
+# Uses SRRXXXXX_HYBRID, a unique identifier as the key/wildcard)
+# Pipeline detects (a) single or paired ends (short) & long reads (PacBio/ONT)
+# Hybrid assembly with Unicycler
+# ======================================================================
+# ------Example 1. T_ethanlolicus -----------------------------------
+#sra_hybrid_samples:
+#  SRR8113456_HYBRID:
+#    short: "SRR8113456"
+#    long: "SRR8113455"
+
+# ------Example 2. Helicobacter pylori, ProjectID: SRP040661 ---------
+#sra_hybrid_samples:
+#  SRR5413257_HYBRID:
+#    short: "SRR5413257" # Helicobacter pyori Paired-end
+#    long: "SRR5413256"  # Single-end/PacBio/Long reads
+
+# ======================================================================
+# TO DELETE THIS OPTION IF OPTION 5 WORKS ---- Option 4: Uses short reads from your lab (by passes download)
+# Uses local_fastq_paths, a unique identifier as the key/wildcard)
+# Assembly with Unicycler (modified Spades assembler)
+# ======================================================================
+# ----- Example 1. My illumina lab sample CS1BS_1 --------------------
+#local_fastq_paths:
+#   my_raw_reads_name:
+#     r1: "local_data/fastq_reads/CS1BS_1.fastq.gz"
+#     r2: "local_data/fastq_reads/CS1BS_2.fastq.gz"
+
+# ----- Example 2. My illumina lab sample NDB4Y10_AFMM4_CGATGT_L001 --- WORKS
+#local_fastq_paths:
+#   my_raw_reads_name:
+#     r1: "local_data/NDB4Y10_AFMM4_CGATGT_L001_R1.fastq.gz"
+#     r2: "local_data/NDB4Y10_AFMM4_CGATGT_L001_R2.fastq.gz"
+
+# ======================================================================
+# Option 5 NEW: Uses local_long_reads_paths, a unique identifier as the key/wildcard)
+# Uses your labs reads and by passes download
+# (Sample A) Uses short reads (filtlong = false in yaml)
+# (Sample B) Uses both short and long reads (filtlong = true in yaml)
+# ======================================================================
+local_long_reads_paths:
+  # SAMPLE A: Short Reads ONLY (The one you are running now)
+  my_raw_reads_name:
+    short_r1: "local_data/NDB4Y10_AFMM4_CGATGT_L001_R1.fastq.gz"
+    short_r2: "local_data/NDB4Y10_AFMM4_CGATGT_L001_R2.fastq.gz"
+    long: ""  # Rule 3 will create a dummy file for this
+
+  # SAMPLE B: Actual Hybrid (For your future lab genomes)
+#  my_actual_hybrid_sample:
+#    short_r1: "local_data/sample_B_R1.fastq.gz"
+#    short_r2: "local_data/sample_B_R2.fastq.gz"
+#    long: "local_data/sample_B_long.fastq.gz" # Rule 3 will copy the real file
+
+# ======================================================================
+# Option 5: Uses short and long reads from your lab (by passes download)
+# Uses local_long_reads_paths, a unique identifier as the key/wildcard)
+# Assembly with Unicycler
+# ======================================================================
+# ----- Example 1. My illumina lab samples  --------------------
+#local_long_reads_paths:
+#   my_hybrid_sample_local:
+#     short_r1: "local_data/sample_1.fastq.gz"
+#     short_r2: "local_data/sample_2.fastq.gz"
+#     long: "local_data/sample_long.fastq.gz"
+
+# ----- Example 2. My illumina lab samples  --------------------
+#local_long_reads_paths:
+#  my_hybrid_sample_local:
+#    short_r1: "local_data/sample_A.fastq.gz"
+#    short_r2: "local_data/sample_B.fastq.gz"
+#    long: "local_data/sample_long.fastq.gz"
+
+# #####################################################################################
+# Option Downsizing long reads using filtlong:
+# filtlong reduces (downsamples) long-read data to a target coverage before hybrid 
+# assembly. This prevents extremely deep long-read coverage from ovewhelming the 
+# assembly graph.
+# #####################################################################################
+# How the pipeline computes the target amount of long-read data:
+#
+#   genome_size_mb × target_coverage × 1,000,000  =  target_bases
+#
+# Example 1. Helicobacter pylori (1.7 Mb)
+#   target_coverage: 100
+#   → 1.7 × 100 = 170 Mb retained
+#
+# Example 2. Thermoanaerobacter ethanolicus (3 Mb)
+#   → 3 × 100 = 300 Mb retained
+#
+# Example 3. E. coli (5 Mb)
+#   → 5 × 100 = 500 Mb retained
+#
+# If `target_bases` is set explicitly in filtlong:, it overrides the
+# computed value.  `min_length` removes very short, noisy reads.
+
+# These high-level parameters are used by the Snakefile to *calculate*
+# how much long-read data to keep:
+genome_size_mb: 1.7          # modify per organism
+target_coverage: 100         # depth of long-read data for the assembly
+
+# filtlong-specific tuning parameters
+filtlong:
+  enabled: true
+  min_length: 1000           # discard long reads < 1 kb
+  target_bases: null         # null = auto-calc from genome_size_mb × target_coverage
+  keep_percent: null         # optional (e.g. 90 = keep best 90%)
+  mean_q_weight: null        # optional quality weighting eg 10
+  length_weight: null        # optional length weighting eg 5
+
+# #####################################################################################
+# Option Select the trimming tool:
+# #####################################################################################
+#trimming_tool: "seqkit"
+# or
+trimming_tool: "bbduk"
+
+# #####################################################################################
+# Option General Configuration:
+# #####################################################################################
+# To download hmms: pixi run -e env-b gtt-hmms --get-hmms Bacteria
+# The hmms will be downloaded to: /home/user/software/taxonomy_bundle/.pixi/envs/env-b/share/gtotree/hmm_sets/
+# To verify: ls -l /home/user/software/taxonomy_bundle/.pixi/envs/env-b/share/gtotree/hmm_sets/
+
+# Match your YAML to your Snakefile logic
+gtotree:
+  hmm_name: "Bacteria"  # Set this to 'Bacteria' for your current run
+
+# dfast_qc database:
+dfast_qc_ref_dir: "db_link/dfast_qc_ref"
+
+# -------------------------------------------------------------------------
+# Pipeline Resources
+# --------------------------------------------------------------------------
+threads: 16
+min_contig_length: 500
+
+# #####################################################################################
+# Option Configure Unicycler Hybrid options:
+# $ unicycler -1 short_reads_1.fastq.gz -2 short_reads_2.fastq.gz -l long_reads.fastq.gz -o output_dir
+# #####################################################################################
+unicycler_options:
+  keep_level: 3 # 0 retains imp files, 1 (default) also keeps graph files, 2 also keeps aln file, 3 keeps all files
+  mode: "normal" # Options: "conservative", "normal", "bold"
+  skip_pilon: false # false will run pilon
+  no_rotate: false # false allows rotation
+  min_kmer_frac: 0.2 # Range 0-1, 0.2 most sensitive, keeps shorter k-mers
+  max_kmer_frac: 0.95 # Range 0-1; Fraction of read length; default = 0.95
+  kmer_count: 10 # Number of kmer steps; default =10
+  depth_filter: 0.25 # Range 0-1, contigs with a depth < a quarter of the median depth wil be removed
+  min_component_size: 1000 # Removes connected contigs smaller than this size (bp)
+  min_contig_size: 1000 # Contigs smaller than this size (bp) will be ignored by unicycler (default = 1000bp)
+
+# #####################################################################################
+# Option Resource Overrides:
+# #####################################################################################
+rule_resources:
+  assemble_genome_unicycler:
+    mem_mb: 60000 # Set to 32 GB (32,000 MB) or whatever RAM your machine has

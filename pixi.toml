@@ -1,309 +1,1272 @@
-#Merged pixi.toml for OGRI, MiGA, GToTree, bit, and other bioinformatics tools.
-# This file defines the entire software environment for your microbial taxonomic workflows.
-
+# ============================================================================
+# taxonomy_bundle : Integrated bioinformatics environment for microbial taxonomy
+# Author: Bharat Patel
+# ============================================================================
 [project]
-name = "taxonomy_bundle" # New, more encompassing name for the combined project
+name = "taxonomy_bundle"
 version = "0.1.0"
-description = "An Integrated bioinformatics guide for taxonomy analysis for OGRI, MiGA, GToTree, bit, and various bioinformatics tools including PHANTASM, DFAST-QC, and NCBI utilities."
-authors = ["Bharat Patel <bharatgu19@gmail.com>"] # Update with your name if desired
+description = "An integrated bioinformatics bundle for taxonomy analysis (OGRI, MiGA, GToTree, BIT, PHANTASM, DFAST-QC, NCBI utilities, etc.)"
+authors = ["Bharat Patel <bharatgu19@gmail.com>"]
 
-# Channels where Pixi will look for packages.
-# The order can sometimes matter for dependency resolution.
-# - "astrobiomike": Specific channel often needed for GToTree and related tools.
-# - "conda-forge": A vast community-driven channel for many scientific and general-purpose packages.
-# - "bioconda": The primary channel for bioinformatics software, built on conda-forge.
-channels = ["rpetit3", "astrobiomike", "conda-forge", "bioconda"]
-
-# Platforms your project supports.
-# "linux-64" for 64-bit Linux systems (like Ubuntu).
+channels = ["rpetit3", "astrobiomike", "conda-forge", "bioconda", "https://repo.prefix.dev/astrogenomics"]
 platforms = ["linux-64"]
 
-# [dependencies] section: List all the software packages required for your project.
-# The "*" means Pixi will install the latest compatible version that satisfies all constraints.
-# Specific versions (e.g., "==1.1.3") pin to an exact release is useful for reproducibility
-# but sometimes causes conflicts if not all other dependencies can align.
+
+# ===========================================================================
+# THE FIREWALL: Project-Local Database and Ruby Isolation
+# ===========================================================================
+[activation.env]
+# THE PORTABLE HANDSHAKE: Tools look here (GitHub Safe)
+MIGA_HOME = "$PIXI_PROJECT_ROOT/db_link/miga_db"
+MYTAXA_DB = "$PIXI_PROJECT_ROOT/db_link/mytaxa"
+KRONA_DB  = "$PIXI_PROJECT_ROOT/db_link/krona"
+RDP_CLASSIFIER_DATA = "$PIXI_PROJECT_ROOT/db_link/rdp"
+
+# THE ENGINE ANCHORS
+GEM_HOME = "$PIXI_PROJECT_ROOT/.pixi/envs/default/share/rubygems"
+# VITAL: We put .pixi/.../bin FIRST so our wrappers (mytaxa) are found before system tools
+PATH = "$PIXI_PROJECT_ROOT/.pixi/envs/default/bin:$PIXI_PROJECT_ROOT/.pixi/envs/default/share/rubygems/bin:$PATH"
+
+# ===========================================================================
+# Default dependencies shared across all environments
+# ===========================================================================
 [dependencies]
-# Core Python Environment
-python = "*"              # The Python interpreter, as most tools are Python-based or have Python wrappers.
-certifi = "*"             # Ensures up-to-date SSL certificates for secure network communication.
+certifi = "*"
 
-# PHANTASM and its external dependencies (installed via Bioconda/Conda-forge)
-# Based on the requirements.txt you found, specific versions are pinned for compatibility.
-# We are now relying on the conda-packaged 'phantasm' which should correctly find its own tools.
-phantasm = "*"            # PHANTASM (installed from Bioconda) using "*" for latest compatible.
-blast = "*"               # NCBI BLAST+ suite, required by PHANTASM and other tools.
-muscle = "*"              # MUSCLE Multiple Sequence Alignment tool.
-fasttree = "*"            # FastTree for phylogenetic tree inference.
-iqtree = "*"              # IQ-TREE for maximum likelihood phylogenetics.
-mafft = "*"               # MAFFT for multiple sequence alignment.
-phantasm-xenogi = "*"     # The xenoGI dependency for PHANTASM, available as a Bioconda package.
-biopython = "*"           # Fundamental bioinformatics library for Python. (NOTE: Bioconda Phantasm expects this, not the old 'Bio' package)
-parasail-python = "*"     # UNPIN THIS: Allow Pixi to find a compatible version.
-scipy = "==1.9.3"         # Pinned version from requirements.txt
-textdistance = "==4.5.0"  # Pinned version from requirements.txt
-numpy = "==1.23.5"        # This is the pinned version from requirements.txt
-semver = "*"              # Semantic Versioning, sometimes a dependency for Python projects.
-bakta = ">=1.10.1,<1.11.2" 
-bioconductor-genomeinfodb = "*"      #added for pyani and phantasm
-bioconductor-genomeinfodbdata = "*"  #added for pyani and phantasm
-xz = "*"             # The llzma library a development library for LZMA compression of xz utilities.
+# PHANTASM and dependencies
+phantasm = "*"
+blast = "*"
+muscle = "*" # Defaults to MUSCLE 5.x for PHANTASM in env-a and env-b
+fasttree = "*"
+iqtree = "*"
+mafft = "*"
+phantasm-xenogi = "*"
+biopython = "*"
+parasail-python = "*"
+scipy = "*"
+textdistance = "*"
+numpy = "*"
+semver = "*"
+bioconductor-genomeinfodb = "*"
+bioconductor-genomeinfodbdata = "*"
+xz = "*"
 
-# R and R-related packages for PHANTASM and general analysis
-r-base = "*"              # Base R installation.
-r-tidyverse = "*"         # Collection of R packages designed for data science.
-#r-decipher = "*"         # R package for phylogenetics, often on Bioconductor (via Bioconda).
-r-dendextend = "*"        # R package for manipulating and visualizing dendrograms.
-r-ape = "*"               # R package for phylogenetic analysis.
-r-gplots = "*"            # R package for plotting data.
-rpy2 = ">=3.5.5,<3.6"     # Pinned at least 3.5.5 but less than 3.6 to allow for minor updates.
-#r-ggplot2 = "*"           # For visualizing phylogenetic trees
-bioconductor-ggtree = "*" # For visualizing phylogenetic trees
-#bioconductor-treeio = "*" # For visualizing phylogenetic trees
+jq = "*" # Convert json to table, ffq
+beautifulsoup4 = ">=4.8.2" #required for ffq 
+frozendict = ">=2.0.3" #required for ffq
+requests = ">=2.23.0" #required for ffq
+lxml = ">=4.5.0" #required for ffq
+pip = "*" 
+falco = "*"
+phykit = "*" 
+FigTree = "*"
 
+# R environment and supporting libraries
+r-base = "*"
+r-tidyverse = "*"
+r-dendextend = "*"
+r-ape = "*"
+r-vegan = ">=2.6,<3"
+openjdk = "11.*"        # Required by MiGA distances/clade_finding steps
+r-gplots = "*"
+rpy2 = ">=3.5.5,<3.6"
+bioconductor-ggtree = "*"
 
-# General Bioinformatics Tools and Libraries
-gawk = ">=4.0.0"          # GNU Awk, a powerful text processing tool.
-prodigal = ">=2.6.3"      # PROkaryotic DYnamic Glimmer ALgorithm, for gene prediction.
-ezaai = "*"              # A tool for Average Amino Acid Identity (AAI) calculations. Requires Java openjdk >=8,<9) but nextflow requires openjdk ==21. 
-pyani = "==0.2.13.1"      # Changed pinned version pyani = "==0.2.12" from requirements.txt 
-#aniclustermap = "*"       # For visualizing ANI results.
-#nextflow = "*"           # Workflow management system. Java (open-jdk) conflict- EzAAI (openjdk >=8,<9) vs nextflow (openjdk ==21).
-pkg-config = ">=0.29.2,<0.30" # Helper for finding libraries during compilation.
-compilers = ">=1.9.0,<2"  # Essential for compiling some tools from source if needed by dependencies.
-sqlite = ">=3.50.1,<4"    # Lightweight database, used by many bioinformatics tools.
-hmmer = ">=3.4,<4"        # HMMER suite for protein sequence analysis.
-bedtools = ">=2.31.1,<3"  # Toolkit for genomic interval manipulation.
-bbmap = "*"               # = bbtools. Use sendsketch.sh for taxonomy from fastqc reads or assembled-contigs 
-mcl = ">=22.282,<23"      # MCL (Markov Cluster Algorithm) for protein clustering.
-barrnap = ">=0.9,<0.10"   # Rapid ribosomal RNA predictor.
-idba = ">=1.1.3,<2"       # IDBA-UD, a de novo assembler for single-cell and metagenomic data.
-faqcs = ">=2.10,<3"       # Fast Accurate Quality Control for Sequence data.
-seqtk = ">=1.5,<2"        # Toolkit for processing FASTA/Q sequences.
-fastp = ">=1.0.1,<2"      # Ultra-fast all-in-one FASTQ preprocessor.
-fastqc = "*"              # Read quality assesment 
-#falco = ">=1.2.5,<2"      # Fast and accurate genome assembly quality assessment.
-trnascan-se = ">=2.0.12,<3" # tRNAscan-SE for tRNA gene prediction.
-pyhmmer = ">=0.11.0,<0.12" # Python bindings for HMMER.
-pyrodigal = ">=3.6.3.post1,<4" # Python bindings for Prodigal.
-spades = ">=4.2.0"         # Installed after dfast_qv 1.0.7 was installed 
-seqkit = "*"               # Installed after dfast_qv 1.0.7 was installed 
-quast = "*"                # Installed after dfast_qv 1.0.7 was installed
-unicycler = "*"            # Use instead of spades for long + short reads (hybrid) assembly
-autocycler = "*"           # Automated consensus assembly   
-flye = "*"                 # long read assembler
-canu = "*"                 # long read assembler
-pilon = "*"                # polish draft assembly 
-racon = "*"                # polishe draft asembly
-raven = "*"                # long read assembly
-#medaka = "==1.13.0"        # polish draft assembly but cannot be installe
+# Core bioinformatics tools
+gawk = ">=4.0.0"
+prodigal = ">=2.6.3"
+pyani = "==0.2.13.1"
+pkg-config = ">=0.29.2,<0.30"
+compilers = ">=1.9.0,<2"
+#sqlite = ">=3.50.1,<4"
+sqlite = ">=3.40.0,<4"
+hmmer = ">=3.4,<4"
+bedtools = ">=2.31.1,<3"
+bbmap = "*"
+mcl = ">=22.282,<23"
+barrnap = ">=0.9,<0.10"
+idba = ">=1.1.3,<2"
+faqcs = ">=2.10,<3"
+seqtk = ">=1.5,<2"
+fastp = ">=1.0.1,<2"
+trnascan-se = ">=2.0.12,<3"
+pyhmmer = ">=0.11.0,<0.12"
+pyrodigal = ">=3.6.3.post1,<4"
+spades = ">=4.2.0"
+seqkit = "*"
+quast = ">=5.2" 
+unicycler = "*"
 
-# NCBI Data Access Tools
-ncbi-genome-download = "*" # For bulk downloading genomes from NCBI.
-entrez-direct = "*"        # EDirect, command-line tools for querying NCBI databases.
-#sra-tools = "==3.2.1"     # installed system wide with sudo and path set in config.yaml for downloading SRA data files.
-ncbi-datasets-cli = "*"    # Downloads datasets from ncbi
-pysradb = "*"              # Installed 18 Aug
-ffq = "*"                  # Similar to pysradb
-aspera-cli = "*"           # works with ascp 
-aspera-connect = "==3.9.6" # ascp for sra data transfer
-kingfisher = "*"           # Download sra data
-srahunter = "==0.0.9"      # Alternate downloader for sra datasets
+# --- REQUIRED MEDAKA PREREQUISITES ---
+#htslib provides bgzip and tabix, resolving the initial error.
+htslib = "*"
+medaka = { version = "*", channel = "bioconda" }
 
-# DFAST-QC and its dependencies
-dfast_qc = "==1.0.7"      # DFAST-QC for quality control of DFAST output.
-mash = "*"                # MASH for rapid genome sketching and distance estimation.
-skani = "*"               # Fast and accurate ANI estimation.
-gsl = ">=2.6"             # GNU Scientific Library, a common dependency for scientific software.
+# Data access utilities
+entrez-direct = "*"
+pysradb = "*"
+aspera-cli = "*"
+aspera-connect = "==3.9.6"
+srahunter = "==0.0.9"
 
-# CheckM and ETE3 (often used for phylogenetic tree visualization)
-checkm-genome = "==1.2.2" # CheckM for assessing genome quality.
-ete3 = "==3.1.2"          # ETE Toolkit for phylogenetic tree manipulation and visualization.
-pyqt = "*"                # PyQt, Python bindings for the Qt application framework (GUI for ETE3).
-more-itertools = "*"      # Extended tools for iterables, often a dependency for Python projects.
-peewee = "*"              # A small, expressive ORM for Python.
+# QC and similarity tools
+mash = "*"
+skani = "*"
+gsl = "*"
+weasyprint = "*" # For generating reports
+pyyaml = "*" # For generating reports
+
+# CheckM and phylogenetic utilities
+checkm-genome = "*"
+ete3 = "*"
+pyqt = "*"
+more-itertools = "*"
+peewee = "*"
 
 # GToTree and BIT (Bacterial Isolate Tool)
-bit = "*"                 # The Bacterial Isolate Tool.
-#bit = "==1.12.3"         # This is the latest version wjich takes care of the GTDB database "
-gtotree = ">=1.8.4,<2"    # GToTree for high-quality phylogenetic trees from genome data.
-pyfastx = "*"             # A Python library for parsing FASTA/Q files, required by 'bit'.
-ipython = "*"             # Interactive Python shell, useful for development and exploration.
-pandas = ">=1.0"          # Data manipulation and analysis library, specifying minimum version.
-xlrd = "=1.2.0"           # For reading Excel files, specifying an exact version for stricter adherence to GAN docs.
-
-# ========================================================================
-# --- MiGA (Microbial Genomes Atlas) Specific Dependencies & Tasks --- 
-# Note: External MiGA auxiliary tools (MyTaxa, KronaTools, RDP Classifier) 
-# are NOT managed by Pixi's package manager. Their installation and 
-# path configuration are handled manually via '~/.miga_modules' as 
-# detailed in the comprehensive bioinformatics guide. 
-# ========================================================================= 
-ruby = ">=3.4.4,<4"         # Provides the Ruby interpreter for MiGA's gem installation 
-openjdk = "*"               # Required for RDP Classifier (Java) and EzAAI
+pyfastx = "*"
+ipython = "*"
+pandas = ">=1.0"
+xlrd = "*"
+ruby = "~=3.3.0"
 fastplong = ">=0.4.1,<0.5"
-#aspera-cli = ">=4.20.0,<5"
+fastani = ">=1.34,<2"
+gtdbtk = ">=2.6.1,<3"
+diamond = ">=2.1.18"
+krona = ">=2.8.1,<3"
+libopenblas = ">=0.3.25,<0.4"
 
-
-# [pypi-dependencies] section:
-# Use this for Python packages that are only available on PyPI or a specific Git repository,
-# and are NOT available through Conda channels.
 [pypi-dependencies]
-pyorthoani = "*" # Custom PyPI package for orthoANI calculations.
+pyorthoani = "*"
+
+# Correct format: Use an inline table { ... } with the 'git' key
+#ffq = { git = "https://github.com/pachterlab/ffq", rev = "devel" } 
+ffq = { git = "https://github.com/pachterlab/ffq", rev = "master" }
 
 
-# [target.<platform>.activation.env] section:
-# This allows you to set environment variables that will be active
-# only when this Pixi environment is activated (e.g., via 'pixi shell').
-# These variables are specifically for the Linux platform.
-[target.linux.activation.env]
-# Sets the default directory where GToTree might look for HMM files.
-# While GToTree often defaults to its internal HMMs, setting this here
-# configures your environment for potential custom HMM usage.
-# IMPORTANT: Ensure this directory exists on your system: /media/bharat/volume1/db/GToTree_HMMs/
-# GToTree_HMM_dir = "/media/bharat/volume1/db/GToTree_HMMs/"
-# NCBI API Key: Highly recommended for frequent NCBI queries to avoid rate limits.
-# Replace with your actual NCBI API Key. Be cautious if sharing this file publicly.
-NCBI_API_KEY = "2dc3b51f85186cbdd416e775fef51a95fa09" # REPLACE THE XXXXXXX WITH YOUR KEY!
+# ============================================================================
+# Python 3.9 feature stack (env-a)
+# ============================================================================
+[feature.python-39-stack.dependencies]
+python = "3.9.*"
+scipy = "==1.9.3"
+textdistance = "==4.5.0"
+numpy = "==1.23.5"
+bit = "*"
+xlrd = "==1.2.0"
+ruby = "3.3.*"
+fastqc = "*"
+bakta = ">=1.11.4"
+gtdbtk = ">=2.6.1"
+rdp_classifier = ">=2.13"
+#openjdk = "11.*" # Both tools now agree on this "Noun"
+openjdk = ">=11,<21" # Required by RDP Classifier (SSU taxonomy step)
+krona = ">=2.8.1"
+taxonkit = ">=0.14.0"
+
+# ============================================================================
+# Python 3.12 feature stack (env-b)
+# ============================================================================
+[feature.python-312-override.dependencies]
+python = "3.12.*"
+
+# ADDED PULP HERE to enable Snakemake's ILP solver for efficient scheduling
+pulp = { version = "*", channel = "conda-forge" }
+
+# Workflow management and visualization
+snakemake = { version = "*", channel = "bioconda" }
+graphviz = { version = "*", channel = "conda-forge" }
+gtotree = "==1.8.16"
+taxonkit = "*"
+BUSCO_phylogenomics = "*"
 
 
-# ------ IMPORTANT: PATH Modifications for general tools but NOT FOR MIGA ------
-# Only include paths for tools that Pixi doesn't install and are NOT managed by ~/.miga_modules. 
-# MiGA itself manages KronaTools, Krona, My Taxa, and RDP Classifier, & hence REMOVED from here. 
-# Keep only if you have other custom executables NOT related to MiGA's external setup. 
-# Example (if you had other custom scripts outside your project dir): 
-# PATH = "$PATH:/path/to/other/custom/scripts"
+# ============================================================================
+# The Legacy Isolation (FOR EZAAI ONLY)
+# ============================================================================
+[feature.ezaai-legacy.dependencies]
+ezaai = "==1.2.4"
+openjdk = "8.*"
 
 
-# Add the GTDB_URL_PREFIX here to replace outdated https://data.gtdb.ecogenomic.org/:
-GTDB_URL_PREFIX = "https://data.ace.uq.edu.au/public/gtdb/data/releases/"
+# ============================================================================
+# BUSCO feature stack (Python 3.9 & MUSCLE 3.8) - ISOLATED
+# This feature contains the complete set of dependencies required by BUSCO 6.
+# ============================================================================
+[feature.busco-stack.dependencies]
+# CORE CONSTRAINT PINS to satisfy SEPP/PASTA
+python = "3.9.*" # FIXED: Required for SEPP 4.5.6
+muscle = "==3.8.1551" # FIXED: Required by PASTA (which is required by SEPP)
+
+# Core BUSCO Requirements
+busco = ">=6.0" 
+biopython = ">=1.81" # Allows 1.81 or newer; stable for BUSCO
+pandas = "*"
+hmmer = ">=3.3.2,<4"
+mafft = "*"
+bbmap = "*" # For genome assembly statistics (e.g., N50)
+blast = ">=2.2" # Provides tBLASTn
+prodigal = "*" # For prokaryotic genome mode
+pip = "*" # To install packages not in conda channels 
+plotly = "*" # Requires kaleido, see note below:
+# NOTE: kaleido is not installable via pixi/conda — must be installed with pip:
+#   pixi run -e env-busco pip install kaleido 
+
+# Optional/Conditional Tool Dependencies
+augustus = ">=3.2" # Option for eukaryotic genome mode
+miniprot = "*" # Default for eukaryotic modes
+metaeuk = "*" # Option for eukaryotic modes
+sepp = "*" # For auto-select lineage pipeline (now compatible with Python 3.9)
+
+#[pypi-dependencies]
+#kaleido = "*"
 
 
-# [tasks] section:
-# Define custom commands or scripts that can be easily run within the Pixi environment
-# using `pixi run <task_name>`. These tasks inherit the environment set up by Pixi.
-[tasks]
-#Install aspera connect 
-install-aspera = """
-  # Check if Aspera Connect is already installed by looking for the ascp binary
-  if command -v ascp &> /dev/null
-  then
-      echo "Aspera Connect is already installed. Skipping."
+# ============================================================================
+# CHECKM2 feature stack (Python 3.8) - ISOLATED
+# This feature contains the complete set of dependencies required by Checkm2
+# ============================================================================
+#[feature.checkm2-stack]
+#channels = ["bioconda", "conda-forge", "defaults"]
+#platforms = ["linux-64"]
+
+[feature.checkm2-stack.dependencies]
+#python = ">=3.6,<3.9"
+python = ">=3.12"
+checkm2 = "==1.1.0"
+tensorflow = "2.17.*"
+#checkm2 = "*"
+pandas = "*"
+numpy = "*"
+
+# For dfast_qc
+dfast_qc = "==1.0.7"
+gsl = "==2.6"
+mash = "*"
+skani = "*"
+hmmer = "*"
+prodigal = "*"
+pip = "*"
+checkm-genome = "*"
+ete3 = "*"
+more-itertools = "*"
+peewee = "*"
+
+
+# ============================================================================
+# Assemblers feature
+# ============================================================================
+[feature.assemblers-base.dependencies]
+unicycler = "*"
+autocycler = ">=0.5.0"
+canu = ">=2.3"
+flye = "*"
+metamdbg = ">=1.0"
+miniasm = ">=0.3"
+minipolish = ">=0.2.0"
+myloasm = ">=0.1.0"
+necat = ">=0.0.1_update20200803"
+nextdenovo = ">=2.5.2"
+nextpolish = ">=1.4.1"
+plassembler = ">=1.8.1"
+racon = ">=1.5.0"
+raven-assembler = ">=1.8.3"
+wtdbg = ">=2.5"
+lrge = "*"
+filtlong = "*"
+nanoplot = "*"
+NanoFilt = "*"
+chopper = "*"
+dnaapler = "*"
+libgcc-ng = "*"
+libstdcxx-ng = "*"
+bandage = "*"
+hybracter = "*"
+minimap2 = ">=2.28"
+mash = ">=2.2"
+samtools = "*"
+bwa = "*"
+shasta = "*" 
+porechop = "*"
+hifiasm = "*"
+
+
+# ----------------------------------------------------------------------------
+# Isolated LJA Assembler feature (requires older libzlib)
+# ----------------------------------------------------------------------------
+[feature.assembler-lja.dependencies]
+lja = "*"
+
+
+# ============================================================================
+# Downloader setup
+# ============================================================================
+[feature.downloader-setup.dependencies]
+kingfisher = "*"
+ncbi-datasets-cli = "*"
+
+[feature.downloader-setup.target.linux-64.activation.env]
+NCBI_API_KEY = "${NCBI_API_KEY:-}"
+
+
+# ============================================================================
+# Pangenomics feature stack (Python 3.10) - ISOLATED
+# Optimized for PIRATE (disparate species) and Panaroo (closely related)
+# ============================================================================
+[feature.pangenomics-stack.dependencies]
+python = "3.10.*"     # Essential for solving ppanggolin dependencies
+openjdk = "21.*"       # OpenJDK is the open-source version of Oracle Java and highly compatible
+perl = ">=5.32"       # Foundation for PIRATE and Roary
+perl-bioperl = "*"    # Essential for GFF/GBK parsing in pangenomics
+
+# Core Pangenome Tools
+pirate = ">=1.0.4"    # Best for disparate genera/species [cite: 2025-06-27]
+panaroo = ">=1.3.0"   # Best for high-quality presence/absence matrices
+ppanggolin = "*"      # Statistical partitioning (Core, Shell, Cloud)
+orthofinder = "*"
+
+# Dependencies for matrix generation and alignment
+mafft = "*"           # Multi-sequence alignment
+cd-hit = "*"          # Sequence clustering
+mcl = "*"             # Markov Clustering for orthology
+diamond = "*"         # Fast protein alignment
+fastTree = "*"        # For core-genome phylogeny
+iqtree = "*"          # High-accuracy phylogenetics
+jalview = "*"         # feature rich, better than seaview & aliview
+AliView = "*"
+muscle = "*"
+figtree = "*"
+prokka = "*"
+clinker-py = "*"
+mmseqs2 = ">=15.6f452" # Often required for fast protein clustering/SAFPred logic
+
+# Standard Synteny & Visualization
+sibeliaZ = ">=1.2.7"
+pygenomeviz = ">=1.2.0"
+pip = "*" # For SAFPred, we might need to install via pip if not in conda
+
+# For SAFPred (Python-based Embedding tool)
+pytorch = ">=2.1.0"
+transformers = ">=4.35.0"
+
+# R Environment and Visualizer (Corrected prefixes)
+r-base = ">=4.3"
+r-gggenes = ">=0.4.1"
+r-ggplot2 = "*"
+
+[feature.pgap2-stack.dependencies]
+python = "3.10.*"
+pgap2 = ">=1.0.8"
+# Note: You don't need to manually list networkx; 
+# Pixi will pull the correct v3.3 automatically here.
+
+[feature.pangenomics-stack.pypi-dependencies]
+# Direct link to the source to bypass registry absence
+orthobrowser = { git = "https://gitlab.com/salk-tm/orthobrowser.git" }
+# Required libraries for orthobrowser rendering
+pandas = "*"
+ete3 = "*"
+
+
+# ============================================================================
+# SYMCLATRON feature stack (Lifestyle Classification)
+# ============================================================================
+[feature.symclatron-stack.dependencies]
+symclatron = "*"
+
+# Usage: pixi run -e env-sym setup-symclatron
+[feature.symclatron-stack.tasks]
+setup-symclatron = { cmd = """
+  # 1. Enforce initial setup
+  symclatron setup --force && \
+  
+  # 2. Neutralize hard-coded paths by locating site-packages dynamically
+  SITE_PACKAGES=$(python -c 'import site; print(site.getsitepackages()[0])') && \
+  SYM_DATA_SRC=\"$SITE_PACKAGES/symclatron/data\" && \
+  
+  # 3. Solidify the Vault docking bay
+  mkdir -p \"$EXTERNAL_VAULT/symclatron\" && \
+  
+  # 4. Shatter the local storage barrier via migration
+  if [ -d \"$SYM_DATA_SRC\" ] && [ ! -L \"$SYM_DATA_SRC\" ]; then
+    cp -r \"$SYM_DATA_SRC/\"* \"$EXTERNAL_VAULT/symclatron/\" && \
+    rm -rf \"$SYM_DATA_SRC\" && \
+    ln -sfn \"$EXTERNAL_VAULT/symclatron\" \"$SYM_DATA_SRC\" && \
+    echo 'SUCCESS: Symclatron database migrated to Sovereign Vault.';
   else
-      # Check the operating system
-      OS=$(uname -s)
-      if [ "$OS" == "Darwin" ]; then
-          # macOS 
-          curl -O https://download.asperasoft.com/download/sw/connect/4.2.6/ibm-aspera-connect-4.2.6.223.dmg
-          hdiutil attach "ibm-aspera-connect-4.2.6.223.dmg"
-          sudo "/Volumes/Aspera Connect/Install Aspera Connect.app/Contents/Resources/install_dir.sh" -f --install-dir=/usr/local/aspera
-          hdiutil detach "/Volumes/Aspera Connect"
-          rm ibm-aspera-connect-4.2.6.223.dmg
-      elif [ "$OS" == "Linux" ]; then
-          # Linux
-          curl -O https://download.asperasoft.com/download/sw/connect/4.2.6/ibm-aspera-connect-4.2.6.223.tar.gz
-          tar -xvf ibm-aspera-connect-4.2.6.223.tar.gz
-          ./ibm-aspera-connect-4.2.6.223.sh
-          rm ibm-aspera-connect-4.2.6.223.tar.gz
-      else
-          echo "Unsupported OS. Please install Aspera Connect manually."
-          exit 1
-      fi
+    echo 'NOTICE: Vault link already solidified or source missing.';
   fi
+""", description = "Neutralizes local storage bloat by migrating Symclatron data to the Vault" }
+
+# Usage: pixi run -e env-sym test-symclatron to test / verify the setup
+test-symclatron = "symclatron test"
+
+# Usage: pixi run -e env-sym symclatron --help to get help
+symclatron-help = "symclatron --help"
+
+# Usage: pixi run -e env-sym symclatron classify --genome-dir ./my_results to run a genome
+
+
+# ============================================================================
+# env-nf: Nextflow & DRAM2 Orchestration
+# Stepwise usage clis': 
+# IA. Validate iSystem (Check the system for errors): pixi run -e env-nf check-system  
+# IB Fix ONLY IF validation step has errors: bash scripts/fix_system.sh 
+# II. Acquire (Direct Acquisition via Globus): 
+#     1. pixi run globus-setup (Once)
+#     2. pixi run globus-start (To initiate transfer)
+# III. Synchronize Pipeline: pixi run -e env-nf setup-dram-pipeline
+# IV. Verify Vault: pixi run -e env-nf dram-verify
+# V. Get help: pixi run -e env-nf dram-help
+# VI To run: add fasta files in a dir named input_genomes in your project directory AND
+# pixi run -e env-nf dram-run 
+
+# Note: Run Download and Prepare steps inside a tmux session to avoid disconnection
+# ============================================================================
+[feature.env-nf.dependencies]
+nextflow = ">=23.10.1"
+openjdk = "17.*"
+apptainer = "*"
+# Adding globus-cli to neutralize dependency conflicts during transfer
+globus-cli = ">=3.0"
+
+[feature.env-nf.tasks]
+# DIAGNOSTIC
+check-system = "bash scripts/check_system.sh"
+
+# FIX THE SYSTEM IF CHECK SHOWS ERROR
+fix-system = "bash scripts/fix_system.sh"
+
+# PIPELINE SYNC
+setup-dram-pipeline = "nextflow pull WrightonLabCSU/DRAM -r dev"
+
+# NEW: ACQUIRE CONFIG
+# This maneuvers the default WrightonLab config into your project root
+dram-get-config = "curl -o nextflow.config https://raw.githubusercontent.com/WrightonLabCSU/DRAM/refs/heads/dev/nextflow.config"
+
+dram-verify = { cmd = """
+    nextflow run WrightonLabCSU/DRAM -r dev \
+        -profile apptainer \
+        --annotate \
+        --database_dir "$EXTERNAL_VAULT/dram_db" \
+        --outdir "$EXTERNAL_VAULT/dram_verify_test" \
+        -w "$NEXTFLOW_WORK" \
+        --help
+    """, description = "Enforces a handshake by using the internal pipeline config" }
+
+# Getting help
+dram-help = "nextflow run WrightonLabCSU/DRAM -r dev --help"
+
+# THE EXECUTION ENGINE: Propels your unknown genomes through the DRAM2 pipeline
+dram-run = { cmd = """
+    nextflow run WrightonLabCSU/DRAM -r dev \
+        -profile apptainer \
+        --annotate \
+        --input_fasta "$PIXI_PROJECT_ROOT/input_genomes" \
+        --database_dir "$EXTERNAL_VAULT/dram_db" \
+        --outdir "$EXTERNAL_VAULT/dram_results_$(date +%Y%m%d)" \
+        -w "$NEXTFLOW_WORK"
+    """, description = "Propels unknown NCBI sequences through high-fidelity functional annotation" }
+
+# ============================================================================
+# bacLIFE feature stack (Pangenomics & Life-cycle)
+
+# Instead of running individual Install: pixi run -e env-baclife baclife-install
+# Runi to get help for all commands: pixi run -e env-baclife baclife-help
+# ============================================================================
+[feature.baclife.dependencies]
+# Core Engine
+python = ">=3.9"
+snakemake = ">=7.0"
+
+# From bacLIFE_download & environment (Phase I & II)
+ncbi-datasets-cli = "*"
+entrez-direct = "*"
+bioawk = "*"
+mash = "*"
+blast = "*"
+diamond = ">=2.0"
+mmseqs2 = "*"
+mcl = "*"
+hmmer = "==3.1b2"
+prokka = "==1.14.6"
+phylophlan = "*"
+eggnog-mapper = "*"
+
+# R-Stack: Quoting keys to neutralize the "Table" error
+r-base = ">=4.0"
+r-tidyverse = "*"
+"r-data.table" = "*"       # <--- Enforce quotes here
+"r-splitstackshape" = "*"  # <--- and here
+r-upsetr = "*"
+r-randomforest = "*"
+r-pheatmap = "*"
+
+# From antiSMASH & BigScape (Phase III)
+antismash = "==8.0.4"
+fasttree = "*"
+# Note: biopython and scikit-learn will be resolved to the highest compatible version
+biopython = "*"
+scikit-learn = "*"
+
+# --- PHASE 0: HELP ---
+[feature.baclife.tasks.baclife-help]
+cmd = """
+  echo "
+================================================================
+   bacLIFE SOVEREIGN LIFECYCLE: THE PATH TO DISCOVERY
+================================================================
+PHASE I: INFRASTRUCTURE (Run Once)
+  1. setup-full        - Solidifies tools & antiSMASH/eggNOG DBs
+  2. dram-config       - Enforces the 444GB DRAM database link
+
+PHASE II: DATA INTEGRITY (Per Project)
+  3. link-assets       - Bridges Vault data to this workspace
+  4. audit-quarantine  - Shatters bad MAGs via CheckM2 (90/5)
+  5. busco-genus       - Optional: Deep lineage-specific audit
+
+PHASE III: EXECUTION (The Science)
+  6. run               - Propels the Snakemake engine
+================================================================
+Target: Lively Discussion of unknown taxa. Avoid Stagnation.
+"
+"""
+description = "Displays the sovereign roadmap"
+
+# --- PHASE I: INFRASTRUCTURE ---
+[feature.baclife.tasks.baclife-install]
+cmd = "bash -c \"if [ ! -d 'bacLIFE' ]; then git clone https://github.com/Carrion-lab/bacLIFE.git; fi && echo 'SUCCESS: bacLIFE repository solidified.'\""
+description = "Clones the bacLIFE workflow repository"
+
+[feature.baclife.tasks.baclife-db-init]
+cmd = """
+  bash -c 'if [ -z "$EXTERNAL_VAULT" ]; then 
+    echo "CONFLICT: EXTERNAL_VAULT is not set. SSD stagnation imminent!"; 
+    exit 1; 
+  fi && 
+  # Clean Pathing (No /databases/databases/)
+  mkdir -p "$EXTERNAL_VAULT/antismash" "$EXTERNAL_VAULT/eggnog" && 
+  
+  echo "Invoking antiSMASH database download..." && 
+  download-antismash-databases --database-dir "$EXTERNAL_VAULT/antismash" && 
+  
+  echo "Invoking bacLIFE internal dependency downloader (Solves 404 errors)..." && 
+  # Note: This requires you to be in the bacLIFE directory
+  cd bacLIFE && python src/download_dependencies.py && 
+  
+  echo "SUCCESS: Genomic libraries solidified in Vault."'
 """
 
-# =========================================================================
-# --- GAN (Generate bacterial genera) Specific Tasks ---
-# 1. Setup Task: Clones the tool into the 'gan_tool' directory.
-setup-gan = "git clone https://github.com/telatin/gan gan_tool"
+[feature.baclife.tasks.baclife-eggnog-fix]
+cmd = """
+  bash -c '
+  EGG_SCRIPT=$(which download_eggnog_data.py) && \
+  echo "HOT-PATCHING: $EGG_SCRIPT" && \
+  # Using sed to swap the dead embl.de URL for the functional eggnog5 mirror
+  sed -i "s|eggnogdb.embl.de|eggnog5.embl.de|g" "$EGG_SCRIPT" && \
+  
+  mkdir -p "$EXTERNAL_VAULT/eggnog" && \
+  echo "Invoking Fixed Downloader to Vault..." && \
+  # We use -y (yes), -f (force), and point to the Vault
+  download_eggnog_data.py -y -f --data_dir "$EXTERNAL_VAULT/eggnog" && \
+  
+  echo "Bridging Vault to bacLIFE..." && \
+  mkdir -p bacLIFE/databases/mapper_data && \
+  ln -sfn "$EXTERNAL_VAULT/eggnog/"* bacLIFE/databases/mapper_data/ && \
+  echo "SUCCESS: eggNOG Conflict Resolved."'
+"""
 
-# 2. Define the gan-genus task, corrected to use 'gan_tool' path
-# Existing gan-genus task (for general use, which will still show error without args)
-gan-genus = { cmd = "python ./gan_tool/scripts/gan-genus.py", args = ["$@"] }
+[feature.baclife.tasks.baclife-verify]
+# Corrected to point to the root Snakefile found by your find command
+cmd = "ls bacLIFE/Snakefile"
+description = "Verifies the internal workflow architecture is present"
 
-# 3. NEW task specifically for displaying full help, corrected to use 'gan_tool' path
+# --- PHASE II: DATA ACQUISITION ---
+[feature.baclife.tasks.baclife-link-assets]
+cmd = """
+  mkdir -p bacLIFE/data/input && \
+  ln -sfn $EXTERNAL_VAULT/ncbi_genomes/*.fna bacLIFE/data/input/ && \
+  ln -sfn $EXTERNAL_VAULT/my_mags/*.fna bacLIFE/data/input/ && \
+  echo 'SUCCESS: Vault assets unified in bacLIFE/data/input/.'
+"""
+description = "Enforces a symbolic bridge between the Sovereign Vault and the workspace"
+
+[feature.baclife.tasks.baclife-audit-quarantine]
+cmd = """
+  mkdir -p bacLIFE/data/quarantine && \
+  pixi run -e env-checkm2 checkm2 predict --threads 16 --input bacLIFE/data/input --output_dir bacLIFE/quality_audit && \
+  awk -F'\t' 'NR>1 && ($2 < 90 || $3 > 5) {print $1}' bacLIFE/quality_audit/quality_report.tsv > bacLIFE/blacklisted_list.txt && \
+  while read genome; do \
+    if [ -f \"bacLIFE/data/input/$genome.fna\" ]; then \
+      mv \"bacLIFE/data/input/$genome.fna\" bacLIFE/data/quarantine/ && \
+      echo \"QUARANTINED: $genome\"; \
+    fi \
+  done < bacLIFE/blacklisted_list.txt && \
+  echo 'SUCCESS: Workspace cleansed of low-quality isolates.'
+"""
+description = "Neutralizes contamination by enforcing strict 90/5 thresholds"
+
+[feature.baclife.tasks.baclife-busco-genus]
+cmd = """
+  if [ -z "$EXTERNAL_VAULT" ]; then echo 'CONFLICT: Vault not set'; exit 1; fi && \
+  mkdir -p $EXTERNAL_VAULT/databases/busco && \
+  busco -i bacLIFE/data/input -o bacLIFE/busco_audit -m genome \
+  --lineage_dataset enterobacterales_odb10 \
+  --download_path $EXTERNAL_VAULT/databases/busco \
+  --offline
+"""
+description = "Enforces specific genus-level integrity checks"
+
+[feature.baclife.tasks.baclife-dram-config]
+cmd = """
+  DRAM-setup.py set_database_paths --default \
+  --description_db $EXTERNAL_VAULT/databases/dram_db/description_db.sqlite \
+  --pfam_db $EXTERNAL_VAULT/databases/dram_db/pfam.mmspro \
+  --kegg_db $EXTERNAL_VAULT/databases/dram_db/kegg.mmslib && \
+  echo 'SUCCESS: DRAM functional engine solidified.'
+"""
+description = "Points the DRAM tool to the sovereign database transfer"
+
+# --- PHASE III: EXECUTION ---
+[feature.baclife.tasks.baclife-run]
+# Corrected the -s (snakefile) path to the root
+cmd = "cd bacLIFE && snakemake --cores 16 -s Snakefile --configfile config/config.yaml"
+description = "Invokes the Snakemake engine on the root Snakefile"
+
+# --- MASTER COMMANDS ---
+[feature.baclife.tasks.baclife-setup-full]
+depends-on = ["baclife-install", "baclife-db-init", "baclife-verify"]
+cmd = "pixi run -e env-baclife baclife-help"
+description = "Invokes total setup and displays the roadmap"
+
+[feature.antismash-stack.dependencies]
+python = "3.11.*"  # Upgrade from 3.9 to 3.11
+antismash = ">=8.0.0"
+hmmer = "*"
+diamond = "*"
+glimmerhmm = "*"
+prodigal = "*"
+
+[feature.eggnog-stack.dependencies]
+python = "3.9.*"
+eggnog-mapper = "*"
+diamond = "*"
+mmseqs2 = "*"
+
+[feature.salmon-stack.dependencies]
+python = "3.9.*"
+salmon = "*"
+samtools = "*"
+
+# ============================================================================
+# CompareM2 feature stack (Microbial Genome Comparison Pipeline)
+# ============================================================================
+[feature.comparem2-stack.dependencies]
+python = "3.10.*"
+comparem2 = ">=2.16.2"
+apptainer = "*"
+snakemake = { version = "*", channel = "bioconda" }
+
+# Core tools called by CompareM2 rules (needed if Apptainer unavailable)
+gtdbtk = ">=2.6.1,<3"
+hmmer = ">=3.4,<4"
+prodigal = "*"
+mash = "*"
+fasttree = "*"
+iqtree = "*"
+mafft = "*"
+seqkit = "*"
+
+[feature.comparem2-stack.activation.env]
+# CheckM2 reads 'CHECKM2DB' specifically (different from our global CHECKM2_DB)
+EXTERNAL_VAULT       = "${EXTERNAL_VAULT:-$PIXI_PROJECT_ROOT/db_local}"
+CHECKM2DB        = "$PIXI_PROJECT_ROOT/db_link/checkm2"
+GTDBTK_DATA_PATH = "$PIXI_PROJECT_ROOT/db_link/gtdbtk"
+BAKTA_DB         = "$PIXI_PROJECT_ROOT/db_link/bakta"
+BUSCO_LINEAGE_SETS = "$PIXI_PROJECT_ROOT/db_link/busco"
+COMPAREM2_DATABASES  = "$EXTERNAL_VAULT/comparem2_db" 
+COMPAREM2_CONDA_PREFIX = "$EXTERNAL_VAULT/comparem2_conda" 
+
+# ============================================================================
+# 1. Environments
+# ============================================================================
+[environments]
+# Python 3.9 stack 
+env-a = { features = ["default", "python-39-stack", "assemblers-base", "downloader-setup"], no-default-feature = false }
+
+# Python 3.12 stack - Corrected and comented out
+env-b = { features = ["default", "python-312-override", "assemblers-base", "downloader-setup"], no-default-feature = false }
+
+# Python 3.12 stack - Now including the Dendroscope feature
+#env-b = { features = ["default", "python-312-override", "assemblers-base", "downloader-setup", "env-b"], no-default-feature = false }
+
+# The isolated room for EZAAI - Isolated to prevent Java version leakage
+env-legacy = { features = ["ezaai-legacy"], no-default-feature = true }
+
+# CORRECTED: Only use 'busco-stack' to prevent conflicts with 'default' dependencies
+env-busco = { features = ["busco-stack"], no-default-feature = true } 
+
+# CORRECTED: Only use 'checkm2-stack' to prevent conflicts with 'default' dependencies
+env-checkm2 = { features = ["checkm2-stack"], no-default-feature = true }
+
+# lja no-default-feature = true ensures lja is installed in total isolation & prevents conflict with unicycler or spades that are in [dependencies] list.
+env-lja = { features = ["assembler-lja"], no-default-feature = true }
+
+# NEW: Isolated Pangenomics Environment
+env-pan = { features = ["pangenomics-stack"], no-default-feature = true }
+
+# Ultra-fast pangenomics (PGAP2)
+env-pgap2 = { features = ["pgap2-stack"], no-default-feature = true }
+
+# symclatron stack set up
+env-sym = { features = ["symclatron-stack"], no-default-feature = true }
+
+# Nextflow & DRAM2 Orchestration
+env-nf = { features = ["env-nf"], no-default-feature = true }
+
+# The specific bacLIFE workspace
+env-baclife = { features = ["baclife"], no-default-feature = true }
+
+# The specific antismash workspace (Secondary Metabolites)
+env-anti = { features = ["antismash-stack"], no-default-feature = true }
+
+# The isolated eggnog workspace (Functional Pangenomics)
+env-egg = { features = ["eggnog-stack"], no-default-feature = true }
+
+# The Salmon workspace (RNA-seq / Quantification)
+env-salmon = { features = ["salmon-stack"], no-default-feature = true }
+
+# CompareM2 genome-to-report pipeline
+env-cm2 = { features = ["comparem2-stack"], no-default-feature = true }
+
+
+# ===========================================================================
+# 1A. Environment Variables: (The Mapping)
+# ===========================================================================
+#[target.linux-64.activation]
+#scripts = ["setup_env.sh"]
+
+[target.linux-64.activation.env]
+# USER ACTION REQUIRED FOR INSTALLING DATABASE iN A HIGH CAPACITY DRIVE:
+# 1. Best Practice: Add 'export EXTERNAL_VAULT="/your/big/drive"' to your ~/.bashrc
+# --- Example: export EXTERNAL_VAULT="/media/your_drive/databases"
+# 2. FALLBACK: If not set in .bashrc, database will install in the project's 'db_local' folder.
+#    WARNING: Large databases (400GB+) may exhaust space on your primary drive!
+EXTERNAL_VAULT = "${EXTERNAL_VAULT:-$PIXI_PROJECT_ROOT/db_local}"
+
+# The Portal: This connects your code to the vault defined above
+CENTRAL_DB_PATH = "$PIXI_PROJECT_ROOT/db_link"
+
+# Database Mappings (Automated via the portal, see above)
+GTDBTK_DATA_PATH   = "$CENTRAL_DB_PATH/gtdbtk"
+PLASSEMBLER_DB     = "$CENTRAL_DB_PATH/plassembler"
+BAKTA_DB           = "$CENTRAL_DB_PATH/bakta"
+CHECKM2_DB         = "$CENTRAL_DB_PATH/checkm2"
+TAXONKIT_DB        = "$CENTRAL_DB_PATH/taxonkit"
+MYTAXA_DB          = "$CENTRAL_DB_PATH/mytaxa"
+KRONA_DB           = "$CENTRAL_DB_PATH/krona"
+DFAST_QC_REF_DIR   = "$CENTRAL_DB_PATH/dfast_qc_ref"
+BUSCO_LINEAGE_SETS = "$CENTRAL_DB_PATH/busco"
+PROKKA_DB          = "$CENTRAL_DB_PATH/prokka"
+SYMCLATRON_DB      = "$CENTRAL_DB_PATH/symclatron"
+DRAM_DB            = "$CENTRAL_DB_PATH/dram"
+ANTISMASH_DB       = "$CENTRAL_DB_PATH/antismash"
+EGGNOG_DATA_DIR    = "$CENTRAL_DB_PATH/eggnog"
+RDP_CLASSIFIER_DATA = "$CENTRAL_DB_PATH/rdp"
+
+# --- DRAM specific variables (to match your Step 5c task) ---
+# Note: DRAM-setup.py often expects these specific environmental flags
+DRAM_CONFIG_FILE = "$CENTRAL_DB_PATH/dram/description_db.sqlite"
+
+# --- Snakemake specific paths ---
+# This ensures Snakemake doesn't store temp files on the system drive
+SNAKEMAKE_TMPDIR = "$EXTERNAL_VAULT/tmp"
+
+# --- Nextflow specific paths ---
+# The Workbench: Staging area for Nextflow calculations within the Vault
+NEXTFLOW_WORK = "$EXTERNAL_VAULT/nextflow_work"
+
+# Network & Access Keys
+GTDB_URL_PREFIX = "https://data.gtdb.ecogenomic.org/releases/"
+ASCP_PATH       = "$PIXI_PROJECT_ROOT/.pixi/envs/env-b/bin/ascp"
+ASCP_KEY        = "$HOME/.aspera/connect/etc/asperaweb_id_dsa.openssh"
+
+NCBI_API_KEY = "${NCBI_API_KEY:-}"
+
+TERM = "xterm-256color"
+# This ensures that whenever a user enters the pixi environment, 
+# their terminal is 'smart' enough for genomics tools.
+
+
+[tasks]
+# -----------------------------------------------------------------------------
+# Database Acquisition & Tool Maintenance 
+# -----------------------------------------------------------------------------
+# This command uses the universal variable to link gtdb and busco lineages
+setup-db = { cmd = """
+  mkdir -p db_link/gtdb && \
+  ln -sfn $EXTERNAL_VAULT/gtdb_226/taxonomy/gtdb_taxonomy.tsv db_link/gtdb/gtdb_taxonomy.tsv && \
+  ln -sfn $EXTERNAL_VAULT/busco db_link/busco
+  ln -sfn $EXTERNAL_VAULT/busco $PIXI_PROJECT_ROOT/busco_downloads
+""", description = "Links local hardware to the project using the GitHub-safe $EXTERNAL_VAULT" }
+
+# ----krona ------------------
+update-krona-db = "pixi run -e env-a ktUpdateTaxonomy.sh $KRONA_DB"
+
+# ----Miga and Taxonomy ------
+# Usage: pixi run install-miga-gem
+#install-miga-gem = { cmd = "gem install miga-base -v 1.4.1.6", description = "Locks Ruby engine to v1.4.1.6 for modern task support" }
+install-miga-gem = { cmd = "gem install miga-base -v 1.4.1.6 --no-document", description = "Forcibly upgrades MiGA to 1.4.1.6" }
+
+# Usage: pixi run download-mytaxa-db
+# description = "Downloads 15GB MyTaxa database (resumable)"
+# cmd = "python scripts/download_mytaxa_robust.py $EXTERNAL_VAULT/mytaxa"
+
+# --- Download Databases ---
+# Usage: pixi run download-checkm2
+download-checkm2 = { cmd = "pixi run -e env-checkm2 checkm2 database --download --path $CENTRAL_DB_PATH/checkm2", description = "Downloads CheckM2 diamond database" }
+
+# Usage: pixi run download-busco-prok
+download-busco-prok = { cmd = "busco --download bacteria archaea --download_path $BUSCO_LINEAGE_SETS", description = "Pre-fetches BUSCO prokaryotic lineages" }
+
+# Usage: pixi run download-dfast-qc
+download-dfast-qc   = { cmd = "pixi run -e env-checkm2 dqc_ref_manager.py download -r $DFAST_QC_REF_DIR", description = "Downloads DFAST_QC reference data" }
+
+# Check health of databases
+# Usage: pixi run list-db
+list-db      = { cmd = "bash scripts/db_health_check.sh", description = "Verifies if all databases are correctly linked and present" }
+
+# ----------------------------------------------------------------------
+# DRAM & Globus Acquisition Tasks
+# ----------------------------------------------------------------------
+# STEP 1: The Installer
+globus-setup = { cmd = """
+    wget -q https://downloads.globus.org/globus-connect-personal/linux/stable/globusconnectpersonal-latest.tgz && 
+    tar xzf globusconnectpersonal-latest.tgz && 
+    echo 'Extraction complete. Run pixi run globus-connect to link your account.'
+    """, description = "Downloads and extracts the Globus client" }
+
+# STEP 2: The Handshake (Interactive)
+globus-connect = { cmd = "cd globusconnectpersonal-*/ && ./globusconnectpersonal -setup --no-gui", description = "Initiates the login handshake" }
+
+# STEP 3: The Background Service
+globus-start = { cmd = "cd globusconnectpersonal-*/ && ./globusconnectpersonal -start &", description = "Launches Globus in the background" }
+
+# THE MASTER COMMAND (Optional, for convenience)
+acquire-dram-vault = { cmd = "pixi run globus-setup && pixi run globus-connect", description = "Full setup and connection of Globus" }
+
+
+# --- Tool Management ---
+# GAN Tool Setup:
+# Usage: pixi run setup-gan
+setup-gan      = { cmd = "git clone https://github.com/telatin/gan gan_tool", description = "Clones the GAN genus/species tool" }
+
+# Running GAN: Needs genus/species names
+# Usage Example: pixi run gan-genus -- --genus Bacillus
+gan-genus      = "python ./gan_tool/scripts/gan-genus.py $@"
 gan-genus-help = "python ./gan_tool/scripts/gan-genus.py -h"
-# =========================================================================
 
-# Define the gan-genus task
-# Existing gan-genus task (for general use, which will still show error without args)
-###gan-genus = { cmd = "python ./gan/scripts/gan-genus.py", args = ["$@"] }
-# NEW task specifically for displaying full help
-###gan-genus-help = "python ./gan/scripts/gan-genus.py -h"
+# OGRI Tool Setup
+# Usage: pixi run setup-ogri-b
+setup-ogri-b   = { cmd = "git clone https://gitlab.pasteur.fr/GIPhy/OGRI.git OGRI && chmod +x OGRI/OGRI_B.sh", description = "Clones the OGRI benchmarking tool" }
 
+# Running OGRI requires input folders and thread counts
+# Usage Example: pixi run ogri_b -- -i ./my_genomes -t 20
+ogri_b         = "bash ./OGRI/OGRI_B.sh $@"
 
-# Task for setting up OGRI_B: clones the repository and makes the script executable.
-# It clones into a sub-directory named 'OGRI' within your project root.
-setup-ogri-b = "git clone https://gitlab.pasteur.fr/GIPhy/OGRI.git OGRI && chmod +x OGRI/OGRI_B.sh"
-# Task for your custom OGRI_B shell script.
-# `bash ./OGRI/OGRI_B.sh` executes the script relative to your project root.
-# `args = ["$@"]` ensures any arguments you provide are are passed to the script.
-ogri_b = { cmd = "bash ./OGRI/OGRI_B.sh", args = ["$@"] }
+# Phantasm: Needs specific phylogenomic parameters
+# Usage Example: pixi run phantasm -- --input_dir ./data
+phantasm     = "phantasm $@"
 
-
-# Task for running the Conda-installed PHANTASM executable.
-# `cmd = "phantasm"` directly calls the executable found in the environment's PATH.
-# `args = ["$@"]` ensures any arguments provided to `pixi run phantasm`
-# (e.g., `pixi run phantasm getPhyloMarker -h`) are passed directly to the 'phantasm' command.
-phantasm = { cmd = "phantasm", args = ["$@"] }
-
-
-# Task for running your wgetGenBankWGS shell script.
-# Ensures the script is executed using bash and is found relative to your project root.
-wget_genbank_wgs = "bash ./scripts/wgetGenBankWGS/wgetGenBankWGS.sh"
-
-
-# ===============================================================
-# --- DFAST-QC Specific Tasks ---
-# DFAST-QC is assumed to be installed as a dependency within this Pixi environment.
-# ===============================================================
-# Task for setting up DFAST QC reference data using a RELATIVE path.
-# This assumes the 'dfast_qc' directory containing 'dqc_ref_manager.py'
-# is located directly within your 'taxonomy_bundle' project root.
-setup-dfast-qc-ref-relative = "python ./dfast_qc/dqc_ref_manager.py download"
-
-# Task for setting up DFAST QC reference data using an ABSOLUTE path.
-# User MUST provide the full path to the 'dfast_qc' directory
-# (the one containing 'dqc_ref_manager.py') as an argument.
-# Example usage: pixi run setup-dfast-qc-ref-absolute -- /home/youruser/my_custom_apps/dfast_qc
-setup-dfast-qc-ref-absolute = { cmd = "python $1/dqc_ref_manager.py download", args = ["$@"] }
-
-# Task to run the DFAST-QC tool itself.
-# Since `dfast_qc` is installed via Pixi, its executable is directly in the PATH.
-# `args = ["$@"]` allows passing any arguments (e.g., --input_fasta, --output-dir)
-# directly to the `dfast_qc` command when you run `pixi run dfast_qc-cli`.
+# DFAST_QC: Needs custom output directory or specific settings
+# Usage Example: pixi run dfast_qc-cli -- --out out_dir input.fna
 dfast_qc-cli = { cmd = "dfast_qc", args = ["$@"] }
 
+# WGET_GENBANK
+# Usage: pixi run wget_genbank_wgs
+wget_genbank_wgs = { cmd = "bash ./scripts/wgetGenBankWGS/wgetGenBankWGS.sh", description = "Runs the GenBank WGS downloader script" }
 
-# =========================================================================== 
-# --- MiGA (Microbial Genomes Atlas) Specific Tasks --- 
-# These tasks facilitate MiGA's core operations within the Pixi environment. 
-# For manual setup and path configuration of MiGA's external auxiliary tools 
-# (MyTaxa, KronaTools, RDP Classifier) via '~/.miga_modules', 
-# please refer to the comprehensive bioinformatics guide. 
-# ============================================================================ 
-# Task to install MiGA as a Ruby Gem. 
-# Run this *after* `pixi install` to get the Ruby environment, then `pixi run install-miga-gem`. install-miga-gem = "gem install miga-base" 
+# Pangenome Analysis with PIRATE on your Bakta GFFs (Example for disparate species)
+run-pirate = "pixi run -e env-pan PIRATE -i results/all_annotations/ -k '--diamond' -t 16"
 
-# Task to initialize MiGA's database and integrate paths of associated external tools. 
-# This command typically creates/updates MiGA's internal database structure 
-# and, crucially, reads ~/.miga_modules to find tools like Krona, MyTaxa, etc. 
-# IMPORTANT: Remember to replace `/path/to/your/miga_db` with your desired database location. 
-# Run this after 'install-miga-gem' and after you've set up ~/.miga_modules. 
-miga-init = { cmd = "bash -c 'source ~/.miga_modules 2>/dev/null || true && miga init --db_dir /path/to/your/miga_db'", args = ["$@"] } 
+# Pangenome Analysis with Panaroo (Example for high-stringency)
+run-panaroo = "pixi run -e env-pan panaroo -i results/all_annotations/*.gff -o results/pangenome --clean-mode strict"
 
-# Task to run the main MiGA command-line interface. 
-# This ensures that ~/.miga_modules is sourced *before* running any 'miga' commands, 
-# allowing MiGA to find its auxiliary tools. 
-miga-cli = { cmd = "bash -c 'source ~/.miga_modules 2>/dev/null || true && miga \"$@\"'", args = ["$@"] } 
+# Run AliView using the pixi-managed Java
+#aliview = "java -jar path/to/aliview.jar"
 
-# Task to prepare the MiGA applications directory. 
-# This creates the necessary directories for manual installation of MiGA's auxiliary tools. 
-# Users should run this before manually installing MyTaxa, KronaTools, etc. 
-prepare-miga-apps-dir = "mkdir -p $HOME/apps $HOME/apps/bin"
+# Ensure you are pointing to the newly downloaded 1.30 jar file
+aliview = "java -Xmx4G -jar $PIXI_PROJECT_ROOT/software/aliview-1.30.jar"
+
+# Usage: pixi run cm2-run -- --input ./my_genomes/*.fna --output ./cm2_results
+cm2-run = { cmd = "pixi run -e env-cm2 comparem2 run $@", description = "Runs CompareM2 genome comparison pipeline" }
+
+# Usage: pixi run cm2-help
+cm2-help = { cmd = "pixi run -e env-cm2 comparem2 --help", description = "Shows CompareM2 usage" }
 
 
-# IMPORTANT REMINDER FOR YOUR GUIDE: 
-# Your guide should explicitly instruct users on how to: 
-# 1. Manually install KronaTools, Krona, My Taxa, and RDP Classifier into their designated ~/apps directory. 
-# 2. Configure MiGA's ~/.miga_modules file to point to these installations. 
-# Pixi's role is to manage MiGA's core dependencies (like Ruby) and provide a controlled environment # for running the `gem install` command, not to manage these auxiliary tools directly.
+# ============================================================================
+# 1C. Heavyweight & Specialized Tasks (Dotted Tables)
+# ============================================================================
+[tasks.setup-vault]
+cmd = """
+  echo "PROVISIONING: Creating Docking Bays in $EXTERNAL_VAULT..."
+  mkdir -p "$EXTERNAL_VAULT/gtdb_226" "$EXTERNAL_VAULT/bakta" "$EXTERNAL_VAULT/plassembler" \
+           "$EXTERNAL_VAULT/checkm2" "$EXTERNAL_VAULT/taxonkit" "$EXTERNAL_VAULT/busco" \
+           "$EXTERNAL_VAULT/dfast_qc_ref" "$EXTERNAL_VAULT/symclatron" "$EXTERNAL_VAULT/dram_db" \
+           "$EXTERNAL_VAULT/mytaxa" "$EXTERNAL_VAULT/krona" "$EXTERNAL_VAULT/prokka_db" \
+           "$EXTERNAL_VAULT/antismash" "$EXTERNAL_VAULT/eggnog" "$EXTERNAL_VAULT/symclatron" \
+           "$EXTERNAL_VAULT/miga_db" "$EXTERNAL_VAULT/tmp" "$EXTERNAL_VAULT/comparem2_db" \
+           "$EXTERNAL_VAULT/comparem2_conda" "$EXTERNAL_VAULT/kraken2" && \
+
+  echo "SOLIDIFYING: Establishing Portal at $PIXI_PROJECT_ROOT/db_link..." &&
+  mkdir -p "$PIXI_PROJECT_ROOT/db_link" && \
+
+  echo "INVOKING: Linking Bridges..."
+  ln -sfn "$EXTERNAL_VAULT/gtdb_226" "$PIXI_PROJECT_ROOT/db_link/gtdbtk" && \
+  ln -sfn "$EXTERNAL_VAULT/bakta" "$PIXI_PROJECT_ROOT/db_link/bakta" && \
+  ln -sfn "$EXTERNAL_VAULT/plassembler" "$PIXI_PROJECT_ROOT/db_link/plassembler" && \
+  ln -sfn "$EXTERNAL_VAULT/checkm2" "$PIXI_PROJECT_ROOT/db_link/checkm2" && \
+  ln -sfn "$EXTERNAL_VAULT/taxonkit" "$PIXI_PROJECT_ROOT/db_link/taxonkit" && \
+  ln -sfn "$EXTERNAL_VAULT/mytaxa" "$PIXI_PROJECT_ROOT/db_link/mytaxa" && \
+  ln -sfn "$EXTERNAL_VAULT/krona" "$PIXI_PROJECT_ROOT/db_link/krona" && \
+  ln -sfn "$EXTERNAL_VAULT/busco" "$PIXI_PROJECT_ROOT/db_link/busco" && \
+  ln -sfn "$EXTERNAL_VAULT/busco" "$PIXI_PROJECT_ROOT/busco_downloads" && \
+  ln -sfn "$EXTERNAL_VAULT/dfast_qc_ref" "$PIXI_PROJECT_ROOT/db_link/dfast_qc_ref" && \
+  ln -sfn "$EXTERNAL_VAULT/prokka_db" "$PIXI_PROJECT_ROOT/db_link/prokka" && \
+  ln -sfn "$PIXI_PROJECT_ROOT/db_link/prokka" "$PIXI_PROJECT_ROOT/.pixi/envs/env-pan/db" && \
+  ln -sfn "$EXTERNAL_VAULT/symclatron" "$PIXI_PROJECT_ROOT/db_link/symclatron" && \
+  ln -sfn "$EXTERNAL_VAULT/dram_db" "$PIXI_PROJECT_ROOT/db_link/dram" && \
+  ln -sfn "$EXTERNAL_VAULT/antismash" "$PIXI_PROJECT_ROOT/db_link/antismash" && \
+  ln -sfn "$EXTERNAL_VAULT/eggnog" "$PIXI_PROJECT_ROOT/db_link/eggnog" && \
+  ln -sfn "$EXTERNAL_VAULT/miga_db" "$PIXI_PROJECT_ROOT/db_link/miga_db" && \
+  ln -sfn "$EXTERNAL_VAULT/comparem2_db" "$PIXI_PROJECT_ROOT/db_link/comparem2" && \
+  ln -sfn "$EXTERNAL_VAULT/comparem2_conda" "$PIXI_PROJECT_ROOT/db_link/comparem2_conda" && \
+  ln -sfn "$EXTERNAL_VAULT/kraken2" "$PIXI_PROJECT_ROOT/db_link/kraken2" && \
+  echo "SUCCESS: Full 18-Database Vault active at $EXTERNAL_VAULT"
+"""
+description = "Universal Infrastructure: Provisions all docking bays and high-capacity temporary storage"
+
+[tasks.vault-audit]
+cmd = """
+  bash -c "
+  echo '================================================================'
+  echo '          SOVEREIGN VAULT: STORAGE AUDIT PROTOCOL'
+  echo '================================================================'
+  echo '1. RECLAIMED SPACE (Logical links):'
+  du -sh $PIXI_PROJECT_ROOT/db_link
+  
+  echo -e '\n2. PHYSICAL OCCUPANCY (1.5TB Vault):'
+  df -h $EXTERNAL_VAULT | awk 'NR==2 {print \\\"used: \\\" \\$3 \\\" out of \\\" \\$2}'
+  
+  echo -e '\n3. TOP HEAVYWEIGHTS (5 Largest):'
+  du -sh $EXTERNAL_VAULT/* 2>/dev/null | sort -rh | head -n 5
+  echo '================================================================'
+  "
+"""
+description = "Neutralizes storage anxiety by calculating reclaimed SSD space"
+
+[tasks.vault-sync]
+cmd = "rsync -avh --progress ./db/ $EXTERNAL_VAULT/"
+description = "Sovereign Sync: Moves local data to the external vault safely"
+
+[tasks.install-aspera]
+cmd = "bash scripts/install_aspera_script.sh"
+
+# Usage: pixi run install-seaview
+# Downloads, extracts, and places the binary in pixi project/bin/seaview folder.
+[tasks.install-seaview]
+description = "Install SeaView 64-bit binary"
+cmd = "mkdir -p bin && cd bin && wget -c https://doua.prabi.fr/software/seaview_data/seaview5-64.tgz && tar -xzvf seaview5-64.tgz"
+
+# Usage for Empty launch: pixi run seaview 
+# Usage for Audit: pixi run seaview <path_to_alignment>
+[tasks.seaview]
+description = "Launch SeaView"
+cmd = "./bin/seaview/seaview"
+
+# Usage: pixi run map-isolates
+[tasks.map-isolates]
+description = "Generate iTOL mapping table from PROKKA/BAKTA .faa files"
+cmd = "python $PIXI_PROJECT_ROOT/scripts/map_isolates.py \"${ISOLATE_PROTEINS_DIR:?Set ISOLATE_PROTEINS_DIR env var}\" $PIXI_PROJECT_ROOT/isolate_mapping.tsv"
+
+# Usage: pixi run color-tree
+[tasks.color-tree]
+description = "Generate iTOL color strip for the 193-genome audit"
+cmd = "python $PIXI_PROJECT_ROOT/scripts/generate_itol_colors.py"
+
+
+# =============================================================================
+# MIGA MANAGEMENT: Databases & Execution
+# =============================================================================
+# STEPS TO uninstall miga
+# Activate env from the Firewall- pixi shell -e env-a
+# Install gem- gem uninstall miga-base --all --executables
+# Clean gem- gem cleanup
+# exit
+
+# STEPS to install miga
+# Activate env from the Firewall - pixi shell -e env-a
+# Infrastruture setup- pixi run setup-vault
+# identify wrappers- pixi run miga-setup-proxies
+# Generate the config- pixi run miga-setup-vault-config
+# install engine- pixi run install-miga-gem
+# verify installation- pixi run miga-check-env AND ALSO pixi run miga-cli about
+
+# STEPS to download database
+# Activate env from the Firewall- pixi shell -e env-a
+# pixi run get-miga-phyla
+# tmux new -s typemat AND than pixi run get-miga-type AND watch the download ---
+# --------- watch -n 60 "du -sh /<path_to_database>"
+# pixi run get-miga-uncultivated
+# pixi run get-miga-gtdb
+
+# --------------------------------------------------------------------------------
+# --- 1. THE SOVEREIGN ENGINE HOOKS --------------------------
+
+[tasks.miga-setup-proxies]
+description = "Deploys wrappers to satisfy MiGA identity checks and prioritizes Pixi tools"
+cmd = """
+  mkdir -p .pixi/envs/default/bin &&
+  printf '#!/bin/bash\nmiga "$@"\n' > .pixi/envs/default/bin/MyTaxa &&
+  printf '#!/bin/bash\nmiga "$@"\n' > .pixi/envs/default/bin/mytaxa &&
+  printf '#!/bin/bash\nktImportTaxonomy "$@"\n' > .pixi/envs/default/bin/ktImportText &&
+  chmod +x .pixi/envs/default/bin/MyTaxa .pixi/envs/default/bin/mytaxa .pixi/envs/default/bin/ktImportText &&
+  echo 'SUCCESS: Sovereign wrappers deployed.'
+"""
+
+[tasks.miga-setup-vault-config]
+# Usage: pixi run miga-setup-vault-config
+cmd = "bash scripts/setup_miga_config.sh"
+description = "GitHub Safe: Automatically generates MiGA config in the Vault (Bypasses miga init)"
+
+[tasks.miga-cli]
+# Usage: pixi run miga-cli [ANY_MIGA_COMMAND]
+cmd = "miga"
+description = "Direct MiGA access. Portable and Vault-aware."
+
+[tasks.miga-run]
+# Usage: pixi run miga-run [TASK_NAME] -P [PROJECT_PATH]
+cmd = "miga run -P \"$@\""
+description = "Executes single MiGA tasks using the modern 1.4.1.1 syntax"
+
+# --- 2. DATABASE ACQUISITION (HOME STORAGE) ----------
+
+[tasks.get-miga-phyla]
+description = "Native MiGA download of Phyla_Lite (~7.5GB)"
+cmd = "pixi run miga-cli db --database Phyla_Lite \"$MIGA_HOME/Phyla_Lite\""
+
+[tasks.get-miga-type]
+description = "TypeMat_Lite download (~52GB, resumable) to visible miga_db folder"
+cmd = """
+  set -e
+  
+  echo "Downloading TypeMat_Lite (~52 GB)..."
+  echo "Destination: $EXTERNAL_VAULT/miga_db/TypeMat_Lite"
+  
+  mkdir -p "$EXTERNAL_VAULT/miga_db/TypeMat_Lite" && \
+  cd "$EXTERNAL_VAULT/miga_db/TypeMat_Lite" && \
+  
+  wget -c --tries=0 --retry-connrefused --waitretry=10 \
+    --read-timeout=300 --timeout=300 --progress=bar:force \
+    https://gatech.microbial-genomes.org/TypeMat_Lite.tar.gz && \
+  
+  echo "Verifying archive..." && \
+  tar -tzf TypeMat_Lite.tar.gz > /dev/null && \
+  
+  echo "Extracting (15-30 minutes)..." && \
+  tar -xzf TypeMat_Lite.tar.gz && \
+  
+  echo "Removing archive to save 52 GB..." && \
+  rm TypeMat_Lite.tar.gz && \
+  
+  echo "SUCCESS! Database ready at:" && \
+  echo "  $PIXI_PROJECT_ROOT/db_link/miga_db/TypeMat_Lite" && \
+  echo "Verify: pixi run miga-cli db --list"
+"""
+
+[tasks.download-mytaxa-db]
+description = "Downloads 15GB MyTaxa database (resumable)"
+cmd = "python scripts/download_mytaxa_robust.py $EXTERNAL_VAULT/mytaxa"
+
+
+# --- 3. MIGA-CHECK: Compatibility & Environment Verification --------
+[tasks.miga-check-env]
+description = "Verifies visibility via the visible Bridge"
+cmd = """
+  echo '--- System Check ---' &&
+  miga --version &&
+  echo '--- Bridge Verification ---' &&
+  ls -ld $PIXI_PROJECT_ROOT/db_link/miga_db &&
+  echo '--- Database Contents ---' &&
+  ls -F $PIXI_PROJECT_ROOT/db_link/miga_db
+"""
+
+[tasks.miga-doctor]
+description = "Runs diagnostics on TypeMat_Lite in the visible Vault"
+cmd = "miga doctor -P $PIXI_PROJECT_ROOT/db_link/miga_db/TypeMat_Lite"
+
+# --- 4. BY-PASS miga init: Create Projects Without Overwriting Config --------------
+[tasks.miga-new-project]
+description = "Creates MiGA project (PROJECT_NAME=name pixi run miga-new-project)"
+cmd = "bash scripts/create_miga_project.sh"
+
+# Usage examples (documentation only):
+# Default:          pixi run miga-new-project
+# Custom name:      pixi run miga-new-project ecoli_analysis
+# Custom type:      pixi run miga-new-project mag_study metagenomes
+# Available types:  genomes, metagenomes, popgenomes, viromes, scgenomes
+
+# Default name
+# pixi run miga-new-project
+
+# Custom name
+# PROJECT_NAME=ecoli_analysis pixi run miga-new-project
+
+# Custom name and type
+# PROJECT_NAME=mag_study PROJECT_TYPE=metagenomes pixi run miga-new-project
+
+# ---------------------------------------------------------------------------
+# 1C Heavyweight Tasks (Dedicated Tables)
+# Use these inside a tmux session 
+#
+# --- installing and using tmux ---------
+# Install tmux system wide: sudo apt-get install tmux
+# Start new tmux session, this will be window 0: tmux new -s genomics -n bakta
+# Run baktai in window 0: pixi run download-bakta
+# Create window 1: Ctrl + B then press C; Now press Ctrl + B, then , (comma) type miga and hit Enter to rename window 1 to miga
+# Run miga in window 1: pixi run download-miga
+# To switch between windows: Ctrl + B, then 0 (for Bakta) or 1 (for MiGA).
+# To detach (safe exit): Ctrl + B, then D
+# To reattach: tmux attach -t genomics
+# ---------------------------------------------------------------------------
+[tasks.download-kraken2]
+cmd = """
+    echo "Downloading k2_pluspf database (~71GB compressed, ~110GB extracted)..." &&
+    mkdir -p "$EXTERNAL_VAULT/kraken2" &&
+    aria2c -x 16 -s 16 -k 1M \
+        -d "$EXTERNAL_VAULT/kraken2" \
+        -o k2_pluspf_20240904.tar.gz \
+        https://genome-idx.s3.amazonaws.com/kraken/k2_pluspf_20240904.tar.gz &&
+    echo "Extracting..." &&
+    tar -xzf "$EXTERNAL_VAULT/kraken2/k2_pluspf_20240904.tar.gz" \
+        -C "$EXTERNAL_VAULT/kraken2/" &&
+    rm "$EXTERNAL_VAULT/kraken2/k2_pluspf_20240904.tar.gz" &&
+    echo "SUCCESS: Kraken2 k2_pluspf database ready at $EXTERNAL_VAULT/kraken2"
+"""
+description = "Downloads and extracts Kraken2 k2_pluspf database (~110GB) to vault"
+
+[tasks.download-bakta]
+# Usage: pixi run download-bakta 
+
+cmd = """
+  pixi run setup-vault && 
+  mkdir -p $EXTERNAL_VAULT/bakta && 
+  cd $EXTERNAL_VAULT/bakta &&
+  
+  if [ -f "manifest.json" ] || [ -f "version.json" ]; then
+    echo "ASSET DETECTED: Bakta database already exists. Skipping download.";
+  else
+    echo "Starting Resumable Download...";
+    echo "Priority 1: Uni-Giessen S3 (Fast Mirror)";
+    echo "Priority 2: Zenodo (Global Backup)";
+    
+    # Attempt Uni-Giessen first with a 10-second timeout to failover quickly
+    wget -c --tries=3 --connect-timeout=10 https://s3.computational.bio.uni-giessen.de/bakta-db/db-v6.0.tar.xz || \
+    wget -c https://zenodo.org/record/14916843/files/db.tar.xz;
+    
+    echo "Download complete. Extracting...";
+    # We use tar directly for the Giessen file or the automated tool for Zenodo
+    if [ -f "db-v6.0.tar.xz" ]; then
+        tar -xJf db-v6.0.tar.xz --strip-components=1 && rm db-v6.0.tar.xz;
+    else
+        pixi run -e env-a bakta_db download --output . --type full;
+    fi
+    
+    ln -sfn $EXTERNAL_VAULT/bakta $PIXI_PROJECT_ROOT/db_link/bakta &&
+    echo "SUCCESS: Bakta v6 is ready on the Tower."
+  fi
+"""
+description = "Dual-mirror resilient download (Uni-Giessen S3 + Zenodo fallback)"
+
+[tasks.setup-prokka-db]
+# Usage: pixi run setup-prokka-db
+
+description = "Downloads and indexes Prokka databases into the Vault"
+cmd = "bash scripts/setup_prokka_db.sh"
+
+[tasks.download-gtdbtk]
+# Usage: pixi run download-gtdbtk
+# WARNING: 141GB Download | ~250GB Extracted. 
+
+cmd = """
+  pixi run setup-vault && 
+  mkdir -p $EXTERNAL_VAULT/gtdb_226 && 
+  cd $EXTERNAL_VAULT/gtdb_226 && 
+  echo 'Starting 141GB GTDB-Tk Download (r226)...' &&
+  wget -c https://data.gtdb.ecogenomic.org/releases/release226/226.0/gtdbtk_r226_data.tar.gz && 
+  echo 'Download Complete. Starting Extraction (this will take a while)...' &&
+  tar -xvzf gtdbtk_r226_data.tar.gz --strip-components=1 && 
+  echo 'Extraction finished. Reclaiming 141GB of space...' && 
+  rm gtdbtk_r226_data.tar.gz && 
+  pixi run -e env-a gtdbtk check_install
+"""
+description = "High-reliability 141GB GTDB download - MUST run in tmux"
+
+[tasks.download-plassembler]
+cmd = """
+  pixi run setup-vault && 
+  (test -f "$EXTERNAL_VAULT/plassembler/plsdb_2023_11_03_v2.msh" && echo "Plassembler Verified in Vault") || (
+    mkdir -p "$EXTERNAL_VAULT/plassembler" && 
+    cd "$EXTERNAL_VAULT/plassembler" && 
+    echo "Vault empty. Downloading real Plassembler DB (363MB) to $EXTERNAL_VAULT..." && 
+    wget -c "https://zenodo.org/records/10158040/files/201123_plassembler_v1.5.0_databases.tar.gz?download=1" -O plassembler.tar.gz && 
+    tar -xvzf plassembler.tar.gz --strip-components=1 && 
+    rm plassembler.tar.gz && 
+    echo "SUCCESS: Full Plassembler DB installed in Vault."
+  )
+"""
+description = "Verified stable download using Pixi-compatible logic"
+
+
+# =============================================================================
+# SNAKEMAKE WORKFLOWS
+# =============================================================================
+
+# Usage: pixi run run-autocycler
+[tasks.run-autocycler]
+description = "Runs the autocycler long-read assembly workflow"
+cmd = "pixi run -e env-a snakemake -s Snakefile_autocycler.smk --cores 32 --rerun-triggers mtime --configfile config/config_auto.yaml"
+
+# Usage: pixi run run-hybracter
+[tasks.run-hybracter]
+description = "Runs the hybracter hybrid assembly workflow"
+cmd = "pixi run -e env-a snakemake -s Snakefile_hybracter.smk --cores 32 --rerun-triggers mtime --configfile config/config_hybracter.yaml"
+
+# Usage: pixi run run-hybrid-taxonomy
+[tasks.run-hybrid-taxonomy]
+description = "Runs the hybrid taxonomy annotation workflow"
+cmd = "pixi run -e env-a snakemake -s Snakefile_hybrid_taxonomy.smk --cores 32 --rerun-triggers mtime --configfile config/config_taxonomy_merged.yaml"
+
+# Usage: pixi run run-sra-search
+[tasks.run-sra-search]
+description = "Runs the SRA search and download workflow"
+cmd = "pixi run -e env-a snakemake -s Snakefile_SRAsearch.smk --cores 32 --rerun-triggers mtime --configfile config/config_SRAsearch.yaml"
+
+# Dry-run versions for testing
+# Usage: pixi run dry-autocycler
+[tasks.dry-autocycler]
+description = "Dry-run autocycler workflow (no execution)"
+cmd = "pixi run -e env-a snakemake -s Snakefile_autocycler.smk --cores 32 --rerun-triggers mtime --configfile config/config_auto.yaml --dry-run"
+
+[tasks.dry-hybracter]
+description = "Dry-run hybracter workflow (no execution)"
+cmd = "pixi run -e env-a snakemake -s Snakefile_hybracter.smk --cores 32 --rerun-triggers mtime --configfile config/config_hybracter.yaml --dry-run"
+
+[tasks.dry-hybrid-taxonomy]
+description = "Dry-run hybrid taxonomy workflow (no execution)"
+cmd = "pixi run -e env-a snakemake -s Snakefile_hybrid_taxonomy.smk --cores 32 --rerun-triggers mtime --configfile config/config_taxonomy_merged.yaml --dry-run"
+
+[tasks.dry-sra-search]
+description = "Dry-run SRA search workflow (no execution)"
+cmd = "pixi run -e env-a snakemake -s Snakefile_SRAsearch.smk --cores 32 --rerun-triggers mtime --configfile config/config_SRAsearch.yaml --dry-run"

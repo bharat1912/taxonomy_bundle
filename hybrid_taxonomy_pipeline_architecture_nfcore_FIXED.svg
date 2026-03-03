@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1800">
+
+<style>
+    .node {
+        rx: 18;
+        ry: 18;
+        stroke-width: 2;
+        stroke: #333;
+        font-family: Arial, sans-serif;
+        font-size: 22px;
+        fill: #f4f1fb;
+    }
+    .title {
+        font-weight: bold;
+        text-anchor: middle;
+    }
+    .edge {
+        stroke: #555;
+        stroke-width: 3;
+        marker-end: url(#arrow);
+    }
+</style>
+
+<defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+        <path d="M0,0 L12,6 L0,12 z" fill="#555"/>
+    </marker>
+</defs>
+
+<!-- Nodes -->
+<rect class="node" x="600" y="40" width="380" height="80"/>
+<text x="790" y="90" class="title">Start / Input</text>
+
+<rect class="node" x="200" y="200" width="450" height="120" fill="#d8eafd"/>
+<text x="425" y="260" class="title">Local Short Reads</text>
+
+<rect class="node" x="950" y="200" width="450" height="120" fill="#fde2e1"/>
+<text x="1175" y="260" class="title">SRA Short Reads</text>
+
+<rect class="node" x="200" y="400" width="450" height="120" fill="#d8eafd"/>
+<text x="425" y="460" class="title">Local Long Reads</text>
+
+<rect class="node" x="950" y="400" width="450" height="120" fill="#fde2e1"/>
+<text x="1175" y="460" class="title">SRA Long Reads</text>
+
+<rect class="node" x="600" y="650" width="380" height="120" fill="#fff4cc"/>
+<text x="790" y="710" class="title">Fastp + Filtlong</text>
+
+<rect class="node" x="600" y="850" width="380" height="120" fill="#e1f7e7"/>
+<text x="790" y="910" class="title">Assembly (Unicycler)</text>
+
+<rect class="node" x="600" y="1050" width="380" height="120" fill="#e8deff"/>
+<text x="790" y="1110" class="title">QC (QUAST)</text>
+
+<rect class="node" x="200" y="1250" width="450" height="120" fill="#fee5ff"/>
+<text x="425" y="1310" class="title">DFAST-QC</text>
+
+<rect class="node" x="950" y="1250" width="450" height="120" fill="#dde5ff"/>
+<text x="1175" y="1310" class="title">GToTree</text>
+
+<!-- Final Output Box -->
+<rect class="node" x="600" y="1500" width="380" height="120" fill="#dddddd"/>
+<text x="790" y="1560" class="title">Final Summary Outputs</text>
+
+<!-- Edges -->
+<line class="edge" x1="790" y1="120" x2="425" y2="200"/>
+<line class="edge" x1="790" y1="120" x2="1175" y2="200"/>
+
+<line class="edge" x1="425" y1="320" x2="425" y2="400"/>
+<line class="edge" x1="1175" y1="320" x2="1175" y2="400"/>
+
+<line class="edge" x1="425" y1="520" x2="790" y2="650"/>
+<line class="edge" x1="1175" y1="520" x2="790" y2="650"/>
+
+<line class="edge" x1="790" y1="770" x2="790" y2="850"/>
+<line class="edge" x1="790" y1="970" x2="790" y2="1050"/>
+
+<line class="edge" x1="790" y1="1170" x2="425" y2="1250"/>
+<line class="edge" x1="790" y1="1170" x2="1175" y2="1250"/>
+
+<line class="edge" x1="425" y1="1370" x2="790" y2="1500"/>
+<line class="edge" x1="1175" y1="1370" x2="790" y2="1500"/>
+
+</svg>

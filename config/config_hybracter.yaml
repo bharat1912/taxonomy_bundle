@@ -1,0 +1,129 @@
+workflow: hybracter
+
+###############################################################################
+# HYBRID INPUT OPTIONS FOR HYBRACTER
+#   - Hybracter iput names are unique & DO NOT conflict with taxonomy/autocycler configs
+#   - Hybracter *requires* both short and long reads.
+#   - Only two options exist:
+#   - Option A: Download short+long reads from SRA
+#   - Option B: Use local short+long read files
+###############################################################################
+
+# ======================================================================
+# Option A — HYBRID SAMPLES FROM SRA (New Unique Name)
+# ======================================================================
+# Format:
+# hybracter_sra_samples:
+#   SAMPLE_KEY:
+#     short: SRRxxxxx
+#     long:  SRRyyyyy
+#
+# Example. Uncomment to use SRA hybrid sample:
+hybracter_sra_samples:
+  SRR5413257_HYBRID:
+    short: "SRR5413257" # Helicobacter pylori illimina paired_reads
+    long:  "SRR5413256" # Helicobacter pylori, long reads PacBio RS
+
+
+
+# ======================================================================
+# Option B — LOCAL HYBRID SAMPLES
+# ======================================================================
+# Example. Uncomment to use local hybrid sample:
+#hybracter_local_samples:
+#  HYB_LOCAL_SAMPLE_01:
+#    short_r1: "local_data/NDB4Y10_AFMM4_CGATGT_L001_R1.fastq.gz"
+#    short_r2: "local_data/NDB4Y10_AFMM4_CGATGT_L001_R2.fastq.gz"
+#    long:     "local_data/my_local_long_reads.fastq.gz"
+
+
+
+###############################################################################
+# UNIQUE NAMING FOR HYBRACTER READS (TO AVOID COISION)
+###############################################################################
+read_naming:
+  short_r1_suffix: "_short_R1.fastq.gz"
+  short_r2_suffix: "_short_R2.fastq.gz"
+  long_suffix:     "_long.fastq.gz"
+
+# Where to place all processed reads for Hybracter
+hybracter_raw_dir: "raw_data/hybracter_reads"
+
+
+
+# #####################################################################################
+# Option Downsizing long reads using filtlong:
+# filtlong reduces (downsamples) long-read data to a target coverage before hybrid 
+# assembly. This prevents extremely deep long-read coverage from ovewhelming the 
+# assembly graph.
+# #####################################################################################
+# How the pipeline computes the target amount of long-read data:
+#
+#   genome_size_mb × target_coverage × 1,000,000  =  target_bases
+#
+# Example 1. Helicobacter pylori (1.7 Mb)
+#   target_coverage: 100
+#   → 1.7 × 100 = 170 Mb retained
+#
+# Example 2. Thermoanaerobacter ethanolicus (3 Mb)
+#   → 3 × 100 = 300 Mb retained
+#
+# Example 3. E. coli (5 Mb)
+#   → 5 × 100 = 500 Mb retained
+#
+# If `target_bases` is set explicitly in filtlong:, it overrides the
+# computed value.  `min_length` removes very short, noisy reads.
+
+# These high-level parameters are used by the Snakefile to *calculate*
+# how much long-read data to keep:
+genome_size_mb: 1.7          # modify per organism
+target_coverage: 100         # depth of long-read data for the assembly
+
+# filtlong-specific tuning parameters
+filtlong:
+  enabled: true
+  min_length: 1000           # discard long reads < 1 kb
+  target_bases: null         # null = auto-calc from genome_size_mb × target_coverage
+  keep_percent: null         # optional (e.g. 90 = keep best 90%)
+  mean_q_weight: null        # optional quality weighting eg 10
+  length_weight: null        # optional length weighting eg 5
+
+
+
+# #####################################################################################
+# Option Select the trimming tool:
+# #####################################################################################
+#trimming_tool: "seqkit"
+# or
+trimming_tool: "bbduk"
+
+
+
+# #####################################################################################
+# Option General Configuration:
+# #####################################################################################
+#dfast_qc_ref_dir: "${EXTERNAL_VAULT}/dqc_reference_compact/dqc_reference" # Deleted in preference to below
+dfast_qc_ref_dir: "${PIXI_PROJECT_ROOT}/.pixi/envs/env-checkm2/opt/dfast_qc-1.0.7/dqc_reference"
+
+gtotree:
+  hmm_dir: "${PIXI_PROJECT_ROOT}/.pixi/envs/default/share/gtotree/hmm_sets/Universal_Hug_et_al.hmm"
+
+# database - plassembler 
+database_paths:
+  plassembler_db: "db/plassembler_db/"
+
+###############################################################################
+# HYBRACTER-SPECIFIC OPTIONS
+###############################################################################
+hybracter_options:
+  threads: 16
+  extra_args: ""   # placeholder for future Hybracter CLI flags
+
+
+
+###############################################################################
+# GENERAL RESOURCES
+###############################################################################
+threads: 16
+min_contig_length: 500
+
