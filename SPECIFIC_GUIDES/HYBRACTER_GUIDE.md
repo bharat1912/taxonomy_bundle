@@ -3,6 +3,8 @@
 This guide walks you through assembling a complete microbial genome using **both long reads
 (PacBio or Nanopore) and short reads (Illumina)** via the `Snakefile_hybracter.smk` pipeline.
 
+> ⚠️ **Work in Progress**: This guide currently covers hybrid assembly (long + short reads). A long-read only mode using `hybracter long` is planned and will be added in a future update.
+
 **You do not need to be a bioinformatics expert to run this pipeline.** Once configured, a
 single command handles everything from downloading your reads through to an annotated,
 phylogenetically placed genome.
