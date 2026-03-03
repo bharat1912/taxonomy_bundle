@@ -11,7 +11,7 @@ A pixi-based bioinformatics workflow bundle for isolate genome taxonomy, annotat
 - 500 GB+ external storage for databases (set as `EXTERNAL_VAULT`)
 
 ### 1. Install system dependencies
-````bash
+```bash
 sudo apt update && sudo apt install -y \
     git \
     curl \
@@ -23,7 +23,7 @@ sudo apt update && sudo apt install -y \
     rsync \
     unzip \
     build-essential
-````
+```
 
 - **git** — clone this repository and version control
 - **curl / wget** — download databases and tools
@@ -35,7 +35,7 @@ sudo apt update && sudo apt install -y \
 - **unzip / build-essential** — general build dependencies
 
 ### 2. Install Pixi (tested on pixi 0.55.0)
-````bash
+```bash
 curl -fsSL https://pixi.sh/install.sh | bash
 source ~/.bashrc
 pixi --version
