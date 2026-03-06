@@ -818,10 +818,6 @@ update-krona-db = "pixi run -e env-a ktUpdateTaxonomy.sh $KRONA_DB"
 #install-miga-gem = { cmd = "gem install miga-base -v 1.4.1.6", description = "Locks Ruby engine to v1.4.1.6 for modern task support" }
 install-miga-gem = { cmd = "gem install miga-base -v 1.4.1.6 --no-document", description = "Forcibly upgrades MiGA to 1.4.1.6" }
 
-# Usage: pixi run download-mytaxa-db
-# description = "Downloads 15GB MyTaxa database (resumable)"
-# cmd = "python scripts/download_mytaxa_robust.py $EXTERNAL_VAULT/mytaxa"
-
 # --- Download Databases ---
 # Usage: pixi run download-checkm2
 download-checkm2 = { cmd = "pixi run -e env-checkm2 checkm2 database --download --path $CENTRAL_DB_PATH/checkm2", description = "Downloads CheckM2 diamond database" }
@@ -1086,9 +1082,18 @@ cmd = """
 """
 
 [tasks.download-mytaxa-db]
-description = "Downloads 15GB MyTaxa database (resumable)"
-cmd = "python scripts/download_mytaxa_robust.py $EXTERNAL_VAULT/mytaxa"
-
+description = "Downloads MyTaxa db files + AllGenomes.faa.dmnd (required by MiGA)"
+cmd = """
+  python scripts/download_mytaxa_robust.py $EXTERNAL_VAULT/mytaxa && \
+  echo 'Downloading AllGenomes.faa.dmnd (~15GB)...' && \
+  wget -c \
+    http://enve-omics.ce.gatech.edu/data/public_mytaxa/AllGenomes.faa.dmnd \
+    -O $EXTERNAL_VAULT/mytaxa/AllGenomes.faa.dmnd && \
+  echo 'Symlinking AllGenomes.faa.dmnd to .miga_db...' && \
+  mkdir -p $HOME/.miga_db && \
+  ln -sfn $EXTERNAL_VAULT/mytaxa/AllGenomes.faa.dmnd $HOME/.miga_db/AllGenomes.faa.dmnd && \
+  echo 'Done! MyTaxa fully installed.'
+"""
 
 # --- 3. MIGA-CHECK: Compatibility & Environment Verification --------
 [tasks.miga-check-env]
