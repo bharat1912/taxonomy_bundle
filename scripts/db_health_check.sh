@@ -50,8 +50,9 @@ check_db_robust "TaxonKit"    "$TAXONKIT_DB/names.dmp"
 
 # MyTaxa: Checking for the specific .lib library files in the volume
 check_db_robust "MyTaxa" \
-    "$MYTAXA_DB/geneInfo.lib" \
-    "$MYTAXA_DB/geneTaxon.lib"
+    "$MYTAXA_DB/db/geneInfo.lib" \
+    "$MYTAXA_DB/db/geneTaxon.lib" \
+    "$MYTAXA_DB/AllGenomes.faa.dmnd"
 
 # Krona: Checking for the presence of the taxonomy SQLite or text files
 check_db_robust "Krona" \
