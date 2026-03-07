@@ -64,13 +64,15 @@ FigTree = "*"
 # R environment and supporting libraries
 r-base = "*"
 r-tidyverse = "*"
-r-dendextend = "*"
 r-ape = "*"
 r-vegan = ">=2.6,<3"
+r-phangorn = "*"        # Required by MiGA for tree construction
+r-phytools = "*"        # Required by MiGA for tree construction
 openjdk = "11.*"        # Required by MiGA distances/clade_finding steps
 r-gplots = "*"
 rpy2 = ">=3.5.5,<3.6"
 bioconductor-ggtree = "*"
+r-dendextend = "*"
 
 # Core bioinformatics tools
 gawk = ">=4.0.0"
@@ -818,6 +820,9 @@ update-krona-db = "pixi run -e env-a ktUpdateTaxonomy.sh $KRONA_DB"
 #install-miga-gem = { cmd = "gem install miga-base -v 1.4.1.6", description = "Locks Ruby engine to v1.4.1.6 for modern task support" }
 install-miga-gem = { cmd = "gem install miga-base -v 1.4.1.6 --no-document", description = "Forcibly upgrades MiGA to 1.4.1.6" }
 
+# Install R.enveomics required by MIGA for tree generation
+install-r-miga-pkgs = { cmd = "Rscript -e \"install.packages('enveomics.R', repos='https://cloud.r-project.org', quiet=FALSE)\"", description = "Installs enveomics.R (CRAN-only) required by MiGA tree generation" }
+
 # --- Download Databases ---
 # Usage: pixi run download-checkm2
 download-checkm2 = { cmd = "pixi run -e env-checkm2 checkm2 database --download --path $CENTRAL_DB_PATH/checkm2", description = "Downloads CheckM2 diamond database" }
@@ -1017,6 +1022,22 @@ cmd = "python $PIXI_PROJECT_ROOT/scripts/generate_itol_colors.py"
 # pixi run get-miga-uncultivated
 # pixi run get-miga-gtdb
 
+# STEPS to classify a genome and generate ref-tree fan PDF
+# 1. Create project:
+#    pixi run miga-new-project
+#    PROJECT_NAME=my_project pixi run miga-new-project
+# 2. Link TypeMat_Lite as reference (required for taxonomy + tree):
+#    pixi run miga-cli edit -P <project> -m ref_project="$MIGA_HOME/TypeMat_Lite"
+# 3. Add genome assembly:
+#    pixi run miga-cli add -P <project> -D <bin_name> -t genome -i assembly <fasta>
+# 4. Run daemon (monitor with watch command below):
+#    tmux new -s miga_run
+#    pixi run miga-cli daemon start -P <project> --shutdown-when-done
+#    watch -n 30 "pixi run miga-cli ls -P <project> --processing 2>/dev/null | tail -3"
+# 5. After completion, generate ref-tree fan PDF (bin highlighted in red):
+#    pixi run miga-reftree <project> <bin_name>
+#    Output: <project>/data/09.distances/05.taxonomy/<bin_name>.reftree.nwk.pdf
+
 # --------------------------------------------------------------------------------
 # --- 1. THE SOVEREIGN ENGINE HOOKS --------------------------
 
@@ -1117,19 +1138,36 @@ description = "Creates MiGA project (PROJECT_NAME=name pixi run miga-new-project
 cmd = "bash scripts/create_miga_project.sh"
 
 # Usage examples (documentation only):
-# Default:          pixi run miga-new-project
-# Custom name:      pixi run miga-new-project ecoli_analysis
-# Custom type:      pixi run miga-new-project mag_study metagenomes
+# Default (creates 'my_miga_project'):
+#   pixi run miga-new-project
+# Custom name:
+#   PROJECT_NAME=ecoli_analysis pixi run miga-new-project
+# Custom name and type:
+#   PROJECT_NAME=mag_study PROJECT_TYPE=metagenomes pixi run miga-new-project
 # Available types:  genomes, metagenomes, popgenomes, viromes, scgenomes
+#
+# IMPORTANT: After creation, link TypeMat_Lite as reference project:
+#   pixi run miga-cli edit -P <project> -m ref_project="$MIGA_HOME/TypeMat_Lite"
+# Then add your genome:
+#   pixi run miga-cli add -P <project> -D <bin_name> -t genome -i assembly <fasta>
 
-# Default name
-# pixi run miga-new-project
+# --- 5. REF-TREE: Fan tree PDF after classify ------------------------------
+[tasks.miga-reftree]
+description = "Generate ref-tree fan PDF for a MiGA-classified genome. Requires completed daemon run."
+cmd = """
+  MIGA_UTILS=$(ls -d "$GEM_HOME/gems/miga-base-"*/utils 2>/dev/null | tail -1) && \
+  Rscript "$MIGA_UTILS/ref-tree.R" \
+    "$1/data/09.distances/05.taxonomy/$2.aai.tsv" \
+    "$1/data/09.distances/05.taxonomy/$2.reftree" \
+    "$2" && \
+  echo "Tree: $1/data/09.distances/05.taxonomy/$2.reftree.nwk.pdf"
+"""
 
-# Custom name
-# PROJECT_NAME=ecoli_analysis pixi run miga-new-project
-
-# Custom name and type
-# PROJECT_NAME=mag_study PROJECT_TYPE=metagenomes pixi run miga-new-project
+# Usage examples (documentation only):
+# Basic:   pixi run miga-reftree pond_bin21_tree bin21
+# Output:  <project>/data/09.distances/05.taxonomy/<bin>.reftree.nwk.pdf
+# Note:    Run AFTER miga daemon has completed (all steps = done)
+# Note:    Requires r-phangorn, r-phytools (pixi deps) and enveomics.R (pixi run install-r-miga-pkgs)
 
 # ---------------------------------------------------------------------------
 # 1C Heavyweight Tasks (Dedicated Tables)
@@ -1233,6 +1271,17 @@ cmd = """
 """
 description = "Verified stable download using Pixi-compatible logic"
 
+[tasks.download-dfast-qc-gtdb-genomes]
+description = "Downloads GTDB r226 representative genomes for dfast_qc offline GTDB search (~30GB)"
+cmd = """
+  wget -c https://data.gtdb.ecogenomic.org/releases/latest/genomic_files_reps/gtdb_genomes_reps.tar.gz \
+      -O $DFAST_QC_REF_DIR/gtdb_genomes_reps.tar.gz && \
+  tar xfz $DFAST_QC_REF_DIR/gtdb_genomes_reps.tar.gz \
+      --strip-components=1 \
+      -C $DFAST_QC_REF_DIR/gtdb_genomes_reps/ && \
+  rm $DFAST_QC_REF_DIR/gtdb_genomes_reps.tar.gz && \
+  echo 'Done! GTDB genome representatives ready for dfast_qc'
+"""
 
 # =============================================================================
 # SNAKEMAKE WORKFLOWS
