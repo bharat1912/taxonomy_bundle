@@ -125,3 +125,5 @@ local_data/*
 !local_data/.gitkeep
 config/*.bak
 conf/
+pond_bin21_tree/
+my_miga_project/
