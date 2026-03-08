@@ -1150,16 +1150,19 @@ os.makedirs(BUSCO_PLOT_DIR,  exist_ok=True)
 
 # =============================================================================
 # 4.X  Run DFAST_QC on consensus assembly
-#       Produces: dfast_qc/consensus/cc_result.tsv and dqc_result.json
+#       Produces: dfast_qc/consensus/result_gtdb.tsv and dqc_result.json
+#       Note: --disable_cc avoids ete3 taxid crash (CheckM2 handles QC elsewhere)
+#             --enable_gtdb provides species-level taxonomy for isolate genomes
+#             For MAGs from novel/underrepresented taxa use MiGA + GTDB-Tk instead
 # =============================================================================
 rule dfast_qc_consensus:
     input:
         fasta = os.path.join(AUTOCYCLER_DIR, "consensus_assembly.fasta"),
         db_ref = os.path.join(config["paths"]["db_root"], "dfast_qc_ref")
     output:
-        cc   = os.path.join(DFAST_QC_DIR, "consensus/cc_result.tsv"),
+        gtdb = os.path.join(DFAST_QC_DIR, "consensus/result_gtdb.tsv"),
         json = os.path.join(DFAST_QC_DIR, "consensus/dqc_result.json")
-    threads: 1
+    threads: 8
     log:
         os.path.join(DFAST_QC_DIR, "consensus/dfast_qc.log")
     shell:
@@ -1169,7 +1172,9 @@ rule dfast_qc_consensus:
             -i {input.fasta} \
             -o {DFAST_QC_DIR}/consensus \
             -r {input.db_ref} \
-            --enable_gtdb --force \
+            --enable_gtdb \
+            --disable_cc \
+            --force \
             -t {threads} \
             > {log} 2>&1
         """

@@ -883,6 +883,13 @@ phantasm     = "phantasm $@"
 # Usage Example: pixi run dfast_qc-cli -- --out out_dir input.fna
 dfast_qc-cli = { cmd = "dfast_qc", args = ["$@"] }
 
+# DFAST_QC for isolates: GTDB taxonomy only, CheckM disabled (ete3 taxid bug workaround)
+# Suitable for isolate genomes - GTDB reps cover all well-characterised taxa
+# NOT suitable for MAGs from underrepresented environments (use MiGA + GTDB-Tk instead)
+# Usage: pixi run dfast-qc-isolate -i genome.fasta -o results/dfast_qc/sample_name
+# Usage (Snakemake): pixi run -e env-checkm2 dfast-qc-isolate -i {input.fasta} -o {output.dir} -n {threads}
+dfast-qc-isolate = { cmd = "dfast_qc --enable_gtdb --disable_cc -r $DFAST_QC_REF_DIR", args = ["$@"], description = "GTDB taxonomy for isolates via dfast_qc (CheckM disabled - ete3 bug)" }
+
 # WGET_GENBANK
 # Usage: pixi run wget_genbank_wgs
 wget_genbank_wgs = { cmd = "bash ./scripts/wgetGenBankWGS/wgetGenBankWGS.sh", description = "Runs the GenBank WGS downloader script" }
@@ -1022,22 +1029,6 @@ cmd = "python $PIXI_PROJECT_ROOT/scripts/generate_itol_colors.py"
 # pixi run get-miga-uncultivated
 # pixi run get-miga-gtdb
 
-# STEPS to classify a genome and generate ref-tree fan PDF
-# 1. Create project:
-#    pixi run miga-new-project
-#    PROJECT_NAME=my_project pixi run miga-new-project
-# 2. Link TypeMat_Lite as reference (required for taxonomy + tree):
-#    pixi run miga-cli edit -P <project> -m ref_project="$MIGA_HOME/TypeMat_Lite"
-# 3. Add genome assembly:
-#    pixi run miga-cli add -P <project> -D <bin_name> -t genome -i assembly <fasta>
-# 4. Run daemon (monitor with watch command below):
-#    tmux new -s miga_run
-#    pixi run miga-cli daemon start -P <project> --shutdown-when-done
-#    watch -n 30 "pixi run miga-cli ls -P <project> --processing 2>/dev/null | tail -3"
-# 5. After completion, generate ref-tree fan PDF (bin highlighted in red):
-#    pixi run miga-reftree <project> <bin_name>
-#    Output: <project>/data/09.distances/05.taxonomy/<bin_name>.reftree.nwk.pdf
-
 # --------------------------------------------------------------------------------
 # --- 1. THE SOVEREIGN ENGINE HOOKS --------------------------
 
@@ -1138,36 +1129,19 @@ description = "Creates MiGA project (PROJECT_NAME=name pixi run miga-new-project
 cmd = "bash scripts/create_miga_project.sh"
 
 # Usage examples (documentation only):
-# Default (creates 'my_miga_project'):
-#   pixi run miga-new-project
-# Custom name:
-#   PROJECT_NAME=ecoli_analysis pixi run miga-new-project
-# Custom name and type:
-#   PROJECT_NAME=mag_study PROJECT_TYPE=metagenomes pixi run miga-new-project
+# Default:          pixi run miga-new-project
+# Custom name:      pixi run miga-new-project ecoli_analysis
+# Custom type:      pixi run miga-new-project mag_study metagenomes
 # Available types:  genomes, metagenomes, popgenomes, viromes, scgenomes
-#
-# IMPORTANT: After creation, link TypeMat_Lite as reference project:
-#   pixi run miga-cli edit -P <project> -m ref_project="$MIGA_HOME/TypeMat_Lite"
-# Then add your genome:
-#   pixi run miga-cli add -P <project> -D <bin_name> -t genome -i assembly <fasta>
 
-# --- 5. REF-TREE: Fan tree PDF after classify ------------------------------
-[tasks.miga-reftree]
-description = "Generate ref-tree fan PDF for a MiGA-classified genome. Requires completed daemon run."
-cmd = """
-  MIGA_UTILS=$(ls -d "$GEM_HOME/gems/miga-base-"*/utils 2>/dev/null | tail -1) && \
-  Rscript "$MIGA_UTILS/ref-tree.R" \
-    "$1/data/09.distances/05.taxonomy/$2.aai.tsv" \
-    "$1/data/09.distances/05.taxonomy/$2.reftree" \
-    "$2" && \
-  echo "Tree: $1/data/09.distances/05.taxonomy/$2.reftree.nwk.pdf"
-"""
+# Default name
+# pixi run miga-new-project
 
-# Usage examples (documentation only):
-# Basic:   pixi run miga-reftree pond_bin21_tree bin21
-# Output:  <project>/data/09.distances/05.taxonomy/<bin>.reftree.nwk.pdf
-# Note:    Run AFTER miga daemon has completed (all steps = done)
-# Note:    Requires r-phangorn, r-phytools (pixi deps) and enveomics.R (pixi run install-r-miga-pkgs)
+# Custom name
+# PROJECT_NAME=ecoli_analysis pixi run miga-new-project
+
+# Custom name and type
+# PROJECT_NAME=mag_study PROJECT_TYPE=metagenomes pixi run miga-new-project
 
 # ---------------------------------------------------------------------------
 # 1C Heavyweight Tasks (Dedicated Tables)
@@ -1272,15 +1246,39 @@ cmd = """
 description = "Verified stable download using Pixi-compatible logic"
 
 [tasks.download-dfast-qc-gtdb-genomes]
-description = "Downloads GTDB r226 representative genomes for dfast_qc offline GTDB search (~30GB)"
+description = """
+  Full GTDB reference setup for dfast_qc offline GTDB search.
+  Downloads GTDB r226 representative genomes (~127GB tar.gz, ~30GB extracted),
+  sp_clusters.tsv, rebuilds mash sketch, and rebuilds SQLite gtdb_reference table.
+  Run once after initial setup or when GTDB version is updated.
+  IMPORTANT: Run inside tmux - takes 1-2 hours total.
+  Steps: download → extract → delete tar.gz → sp_clusters → mash sketch → sqlite db
+"""
 cmd = """
+  DQC_DIR=$DFAST_QC_REF_DIR && \
+  DQC_TOOL=$(ls -d $PIXI_PROJECT_ROOT/.pixi/envs/env-checkm2/opt/dfast_qc-*/  2>/dev/null | tail -1) && \
+  echo "=== Step 1: Download GTDB r226 genomes ===" && \
+  mkdir -p $DQC_DIR/gtdb_genomes_reps/database && \
   wget -c https://data.gtdb.ecogenomic.org/releases/latest/genomic_files_reps/gtdb_genomes_reps.tar.gz \
-      -O $DFAST_QC_REF_DIR/gtdb_genomes_reps.tar.gz && \
-  tar xfz $DFAST_QC_REF_DIR/gtdb_genomes_reps.tar.gz \
+      -O $DQC_DIR/gtdb_genomes_reps.tar.gz && \
+  echo "=== Step 2: Extract ===" && \
+  tar xfz $DQC_DIR/gtdb_genomes_reps.tar.gz \
       --strip-components=1 \
-      -C $DFAST_QC_REF_DIR/gtdb_genomes_reps/ && \
-  rm $DFAST_QC_REF_DIR/gtdb_genomes_reps.tar.gz && \
-  echo 'Done! GTDB genome representatives ready for dfast_qc'
+      -C $DQC_DIR/gtdb_genomes_reps/ && \
+  echo "=== Step 3: Delete tar.gz to free space ===" && \
+  rm $DQC_DIR/gtdb_genomes_reps.tar.gz && \
+  echo "=== Step 4: Download sp_clusters.tsv ===" && \
+  wget -c https://data.gtdb.ecogenomic.org/releases/latest/auxillary_files/sp_clusters.tsv \
+      -O $DQC_DIR/sp_clusters.tsv && \
+  echo "=== Step 5: Delete old GTDB mash sketch if present ===" && \
+  rm -f $DQC_DIR/gtdb_genomes_sketch.msh && \
+  echo "=== Step 6: Rebuild mash sketch from local genomes (~60 min) ===" && \
+  python $DQC_TOOL/dqc_admin_tools.py mash_gtdb_sketch \
+      --ref_dir $DQC_DIR --num_threads 8 && \
+  echo "=== Step 7: Rebuild SQLite gtdb_reference table ===" && \
+  python $DQC_TOOL/dqc_admin_tools.py prepare_sqlite_db \
+      --for_gtdb --ref_dir $DQC_DIR && \
+  echo "=== Done! GTDB reference fully built for dfast_qc offline search ==="
 """
 
 # =============================================================================
