@@ -1184,7 +1184,7 @@ rule dfast_qc_consensus:
 # =============================================================================
 rule extract_genus_consensus:
     input:
-        cc   = os.path.join(DFAST_QC_DIR, "consensus/cc_result.tsv"),
+        cc   = os.path.join(DFAST_QC_DIR, "consensus/result_gtdb.tsv"),
         json = os.path.join(DFAST_QC_DIR, "consensus/dqc_result.json")
     output:
         genus = os.path.join(DFAST_QC_DIR, "consensus/genus.txt")
