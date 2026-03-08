@@ -187,18 +187,121 @@ pixi run -e env-checkm2 dfast-qc-isolate \
 
 ## Database storage summary
 
-| Database | Tool | Size |
-|----------|------|------|
-| GTDB-Tk r226 | GTDB-Tk | ~66 GB |
-| TypeMat_Lite | MiGA | ~50 GB |
-| GTDB genomes (reps) | MiGA / DFAST_QC | ~127 GB extracted |
-| Kraken2 standard | Kraken2 | ~100 GB |
-| Bakta DB | Bakta | ~70 GB |
-| CheckM2 | CheckM2 | ~3 GB |
-| DFAST_QC ref | DFAST_QC | ~2 GB compact / full >100 GB |
-| DRAM2 | DRAM2 | ~600 GB |
-| Other tools | Various | ~100 GB |
-| **Total** | | **~1.2 TB** |
+The full suite totals ~1.2 TB. **You do not need all databases to get started.**
+Each database is downloaded independently — add them one at a time as your work expands.
+
+> **Note:** Adding a database later requires just one command — no reinstallation needed:
+> ```bash
+> pixi run download-kraken2       # add Kraken2 any time after initial setup
+> pixi run download-miga-typemat  # add MiGA type strain DB when needed
+> ```
+
+### Tier 1 — Starter set (~150 GB) — isolate genomics
+
+| Database | Tool | Size | Download command | Purpose |
+|----------|------|------|-----------------|---------|
+| GTDB-Tk r226 | GTDB-Tk | ~66 GB | `pixi run download-gtdbtk` | Species-level taxonomy |
+| CheckM2 | CheckM2 | ~3 GB | `pixi run download-checkm2` | Genome completeness / contamination |
+| Bakta DB | Bakta | ~70 GB | `pixi run download-bakta-db` | Full genome annotation |
+| DFAST_QC compact | DFAST_QC | ~2 GB | `pixi run download-dfast-qc` | Quick taxonomy + QC check |
+
+> A **500 GB external SSD** is sufficient for Tier 1. This is the recommended starting point.
+
+### Tier 2 — Extended set (~400 GB additional) — adds metagenomics + MiGA
+
+| Database | Tool | Size | Download command | Purpose |
+|----------|------|------|-----------------|---------|
+| TypeMat_Lite | MiGA | ~50 GB | `pixi run download-miga-typemat` | Type strain taxonomy (28,548 genomes) |
+| Phyla_Lite | MiGA | ~5 GB | `pixi run download-miga-phyla` | Phylum-level classification |
+| GTDB genomes (reps) | MiGA / DFAST_QC | ~127 GB | `pixi run download-dfast-qc-gtdb-genomes` | Offline GTDB search |
+| Kraken2 standard | Kraken2 | ~100 GB | `pixi run download-kraken2` | Read-level taxonomic profiling |
+| MyTaxa | MiGA | ~50 GB | `pixi run download-mytaxa` | Gene-based taxonomy screening |
+
+### Tier 3 — Full suite (~650 GB additional) — adds metabolic annotation
+
+| Database | Tool | Size | Download command | Purpose |
+|----------|------|------|-----------------|---------|
+| DRAM2 | DRAM2 | ~600 GB | `pixi run download-dram2` | Full metabolic annotation |
+| BUSCO lineages | BUSCO | ~10 GB | `pixi run download-busco-prok` | Lineage-specific completeness |
+| eggNOG | eggNOG-mapper | ~30 GB | `pixi run download-eggnog` | Functional annotation + COG |
+
+### Cumulative storage by tier
+
+| What you download | Storage needed |
+|-------------------|---------------|
+| Tier 1 only | ~150 GB |
+| Tier 1 + Tier 2 | ~550 GB |
+| Tier 1 + Tier 2 + Tier 3 | **~1.2 TB** |
+
+---
+
+## WSL2 users — additional setup
+
+### Increase RAM allocation (important for GTDB-Tk and large assemblies)
+
+By default WSL2 uses only 50% of your system RAM. For bioinformatics workloads
+create a `.wslconfig` file on the **Windows** side:
+
+```
+# File location: C:\Users\YourWindowsUsername\.wslconfig
+[wsl2]
+memory=24GB
+processors=8
+```
+
+Adjust `memory` and `processors` to match your hardware. Restart WSL2 after saving:
+```powershell
+# In PowerShell (Windows side)
+wsl --shutdown
+# Then reopen Ubuntu
+```
+
+### Windows drive paths inside WSL2
+
+Your Windows drives are mounted automatically inside WSL2:
+- C: drive → `/mnt/c/`
+- D: drive → `/mnt/d/`
+- External SSD → `/mnt/e/` (or similar)
+
+Set `EXTERNAL_VAULT` to point to your external drive:
+```bash
+echo 'export EXTERNAL_VAULT="/mnt/d/databases"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+> **Performance note:** Large database operations (GTDB-Tk, DRAM2) run faster
+> when databases are stored on the native WSL2 filesystem (`~/` or `/home/`)
+> rather than on a Windows NTFS drive (`/mnt/d/`). For databases you access
+> frequently, consider copying them to the WSL2 filesystem if space allows.
+
+---
+
+## Starter database set (~141 GB)
+
+The full database suite is ~1.2 TB. You do not need all of it to get started.
+Databases can be added at any time with a single command — no reinstallation needed.
+
+| Database | Tool | Size | Pixi task | Good for |
+|----------|------|------|-----------|----------|
+| GTDB-Tk r226 | GTDB-Tk | ~66 GB | `download-gtdbtk` | Species-level taxonomy |
+| CheckM2 | CheckM2 | ~3 GB | `download-checkm2` | Genome completeness & contamination |
+| Bakta v6 | Bakta | ~70 GB | `download-bakta-db` | Gene annotation |
+| DFAST_QC compact | DFAST_QC | ~2 GB | `download-dfast-qc` | Quick isolate taxonomy check |
+| **Starter total** | | **~141 GB** | | |
+
+### Add more databases later — one command each, no reinstallation needed
+
+```bash
+pixi run download-kraken2                    # Kraken2 k2_pluspf (~100 GB)
+pixi run download-miga-typemat               # MiGA TypeMat_Lite (~50 GB)
+pixi run download-miga-phyla                 # MiGA Phyla_Lite (~5 GB)
+pixi run download-dfast-qc-gtdb-genomes      # DFAST_QC full GTDB (~127 GB extracted)
+pixi run download-busco-prok                 # BUSCO prokaryotic lineages (~10 GB)
+```
+
+> **DRAM2 note:** The DRAM2 metabolic annotation database (~600 GB) is the
+> largest single database. It is only needed for deep metabolic pathway analysis.
+> Most isolate genomics workflows do not require it to get started.
 
 ---
 
@@ -212,7 +315,58 @@ pixi run -e env-checkm2 dfast-qc-isolate \
 
 ---
 
+## Running on Windows via WSL2
+
+taxonomy_bundle runs identically on Windows using WSL2 (Windows Subsystem for Linux).
+WSL2 provides a real Ubuntu Linux environment built into Windows 10/11 — not a virtual machine.
+
+### WSL2 setup (one-time)
+
+Open PowerShell as Administrator:
+```powershell
+wsl --install
+```
+Restart your computer. Ubuntu opens automatically. Set a username and password.
+
+> **Institutional computers:** If your machine is managed by a university or hospital IT department,
+> you may need admin rights or IT assistance to enable WSL2 and virtualisation in BIOS.
+
+### Increase WSL2 memory allocation (recommended)
+
+WSL2 defaults to 50% of system RAM. For GTDB-Tk and large assemblies, increase this:
+
+Create the file `C:\Users\YourName\.wslconfig` on Windows with:
+```ini
+[wsl2]
+memory=24GB
+processors=8
+```
+Restart WSL2: `wsl --shutdown` in PowerShell, then reopen Ubuntu.
+
+### Database paths in WSL2
+
+Windows drives are accessible inside WSL2 as `/mnt/c/`, `/mnt/d/` etc.
+Set your vault to an external drive:
+```bash
+echo 'export EXTERNAL_VAULT="/mnt/d/databases"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+> **Performance note:** For large jobs, databases stored on Windows NTFS drives (`/mnt/d/`) are
+> slower than the native WSL2 filesystem. If possible, store databases on a dedicated Linux-formatted
+> drive or within the WSL2 filesystem (`~/`).
+
+### What works identically on WSL2
+- All pixi environments and tools ✓
+- All Snakemake workflows ✓
+- All database download tasks ✓
+- Ruby/gem (MiGA) managed by pixi — no system install needed ✓
+- Java managed by pixi — no system install needed ✓
+
+---
+
 ## Citing tools
+
 
 If you use this bundle please cite the individual tools used in your analysis.
 Key citations include MiGA, GTDB-Tk, Bakta, DFAST_QC, CheckM2, PHANTASM, and
