@@ -93,8 +93,29 @@ check_db_robust "eggNOG-mapper" \
 check_db_robust "antiSMASH" \
     "$PIXI_PROJECT_ROOT/db_link/antismash/pfam/35.0/Pfam-A.hmm"
 
-# Nextflow Working Directory: Checking for the orchestration engine
-# This now uses the variable defined in your pixi.toml
-check_db_robust "Nextflow Work" "$NEXTFLOW_WORK"
+# DRAM2: Core annotation databases
+check_db_robust "DRAM2" \
+    "$EXTERNAL_VAULT/dram_db/databases/db_descriptions" \
+    "$EXTERNAL_VAULT/dram_db/databases/kofam" \
+    "$EXTERNAL_VAULT/dram_db/databases/pfam"
+
+# MiGA: Reference databases
+check_db_robust "MiGA" \
+    "$EXTERNAL_VAULT/miga_db/Phyla_Lite" \
+    "$EXTERNAL_VAULT/miga_db/TypeMat_Lite"
+
+# BMTagger: Human read removal
+check_db_robust "BMTagger" "$EXTERNAL_VAULT/bmtagger/hg38.fa.gz"
+
+# Kraken2: Taxonomic classification
+check_db_robust "Kraken2" \
+    "$EXTERNAL_VAULT/kraken2/hash.k2d" \
+    "$EXTERNAL_VAULT/kraken2/opts.k2d"
+
+# CompareM2: Genome comparison
+check_db_robust "CompareM2" "$EXTERNAL_VAULT/comparem2_db"
+
+# GToTree: Phylogenetics HMM sets
+check_db_robust "GToTree-HMMs" "$EXTERNAL_VAULT/gtotree/hmm_sets"
 
 echo -e "\n${YELLOW}Health Check Complete.${NC}"

@@ -595,16 +595,18 @@ description = "Enforces a symbolic bridge between the Sovereign Vault and the wo
 
 [feature.baclife.tasks.baclife-audit-quarantine]
 cmd = """
-  mkdir -p bacLIFE/data/quarantine && \
-  pixi run -e env-checkm2 checkm2 predict --threads 16 --input bacLIFE/data/input --output_dir bacLIFE/quality_audit && \
-  awk -F'\t' 'NR>1 && ($2 < 90 || $3 > 5) {print $1}' bacLIFE/quality_audit/quality_report.tsv > bacLIFE/blacklisted_list.txt && \
-  while read genome; do \
-    if [ -f \"bacLIFE/data/input/$genome.fna\" ]; then \
-      mv \"bacLIFE/data/input/$genome.fna\" bacLIFE/data/quarantine/ && \
-      echo \"QUARANTINED: $genome\"; \
-    fi \
-  done < bacLIFE/blacklisted_list.txt && \
-  echo 'SUCCESS: Workspace cleansed of low-quality isolates.'
+  bash -c '
+  mkdir -p bacLIFE/data/quarantine &&
+  pixi run -e env-checkm2 checkm2 predict --threads 16 --input bacLIFE/data/input --output_dir bacLIFE/quality_audit &&
+  awk -F"\\t" "NR>1 && ($2 < 90 || $3 > 5) {print $1}" bacLIFE/quality_audit/quality_report.tsv > bacLIFE/blacklisted_list.txt &&
+  while read genome; do
+    if [ -f "bacLIFE/data/input/$genome.fna" ]; then
+      mv "bacLIFE/data/input/$genome.fna" bacLIFE/data/quarantine/ &&
+      echo "QUARANTINED: $genome"
+    fi
+  done < bacLIFE/blacklisted_list.txt &&
+  echo "SUCCESS: Workspace cleansed of low-quality isolates."
+  '
 """
 description = "Neutralizes contamination by enforcing strict 90/5 thresholds"
 
@@ -632,7 +634,7 @@ description = "Points the DRAM tool to the sovereign database transfer"
 # --- PHASE III: EXECUTION ---
 [feature.baclife.tasks.baclife-run]
 # Corrected the -s (snakefile) path to the root
-cmd = "cd bacLIFE && snakemake --cores 16 -s Snakefile --configfile config/config.yaml"
+cmd = "cd bacLIFE && snakemake --cores 16 -s Snakefile --configfile config.json"
 description = "Invokes the Snakemake engine on the root Snakefile"
 
 # --- MASTER COMMANDS ---
