@@ -7,7 +7,7 @@ genomes and MAGs against multiple functional databases to produce metabolic prof
 pathway completeness estimates, and interactive summary visualisations.
 
 **Environment:** `env-nf` (Nextflow + Apptainer + OpenJDK 17)  
-**Pipeline:** `WrightonLabCSU/DRAM` (branch: `dev`, version: 2.0.0-beta24)  
+**Pipeline:** `WrightonLabCSU/DRAM` (branch: `dev`, version: 2.0.0-beta26)  
 **Database:** ~546 GB at `$EXTERNAL_VAULT/dram_db/`  
 **RAM requirement:** ~64 GB (without KEGG/UniRef) | ~220 GB (with UniRef)
 
@@ -389,6 +389,136 @@ sulfate reducer, methanogen, methylotroph etc.).
 | `WARN: invalid input values: --database_dir` | Warning only, not an error | Pipeline resolves paths internally — safe to ignore |
 | NOTE: local project version outdated | Newer pipeline commit available | Run `setup-dram-pipeline` to update, or ignore |
 | Input file extension error | `.fna` or `.fa` used | Rename all inputs to `.fasta` |
+| `PRODUCT_HEATMAP` hangs indefinitely | Bug in `dram-viz 0.2.5` — see fix below | Apply `product_heatmap.nf` patch (Section below) |
+| `WARN: invalid input values: --groupby_column` | Stale parameter renamed in beta26 | Remove `groupby_column` from local `nextflow.config` |
+| `WARN: invalid input values: --rules_tsv` | Parameter renamed in beta26 | Rename to `trait_rules_tsv` in local `nextflow.config` |
+| `PRODUCT_HEATMAP ABORTED` with exit code 130 | Run was interrupted (Ctrl+C/SIGINT) | Resume with `-resume` — annotation steps will be cached |
+| No `VISUALIZE/` directory in outdir | `PRODUCT_HEATMAP` never completed | Check work dir `.command.sh` and `.exitcode`; see fix below |
+
+---
+
+### Known Bug Fix: PRODUCT_HEATMAP hangs indefinitely (v2.0.0-beta26)
+
+**Affected version:** `v2.0.0-beta26` (commit `f03804bca4`) with `dram-viz 0.2.5`
+
+**Root cause:** The `dram-viz 0.2.5` `make_product.py` script creates a `Dashboard()` object
+but never calls `.save()` on it when run in non-dashboard (static HTML) mode. This causes
+`dram_viz` to run indefinitely without producing any output. This is a bug in the upstream
+`dram-viz` package.
+
+**Symptoms:**
+- `PRODUCT_HEATMAP` shows `[0%] 0 of 1` and never progresses
+- Process runs for hours without completing
+- `.command.log` and `.command.err` are empty in the work directory
+- `.command.sh` shows `dram_viz` being called but no output files are produced
+- `ps aux | grep dram_viz` shows the process consuming CPU but never finishing
+
+**Fix — patch `product_heatmap.nf` to use the old working container:**
+
+```bash
+# Step 1 — restore the original file from git (in case of any prior edits)
+git -C ~/.nextflow/assets/WrightonLabCSU/DRAM checkout \
+  modules/local/product/product_heatmap.nf
+
+# Step 2 — overwrite with the patched version using dram-viz 0.1.8
+cat > ~/.nextflow/assets/WrightonLabCSU/DRAM/modules/local/product/product_heatmap.nf << 'EOF'
+process PRODUCT_HEATMAP {
+    label 'process_small'
+    errorStrategy 'finish'
+
+    conda "${moduleDir}/environment.yml"
+    container "community.wave.seqera.io/library/python_dram-viz:16eae7534cb2ead2"
+
+    input:
+    path( ch_final_annots, stageAs: "raw-annotations.tsv")
+    val(fasta_column)
+    path(rules_tsv)
+    val(rules_system)
+
+    output:
+    path( "product.html" ), emit: product_html
+
+    script:
+    """
+    dram_viz --annotations ${ch_final_annots} --groupby-column ${fasta_column}
+    """
+}
+EOF
+
+# Step 3 — verify the patch
+grep -A10 'dram_viz' ~/.nextflow/assets/WrightonLabCSU/DRAM/modules/local/product/product_heatmap.nf
+```
+
+Expected output after patch:
+```
+    dram_viz --annotations ${ch_final_annots} --groupby-column ${fasta_column}
+```
+
+**Step 4 — delete the stale work directory and resume:**
+
+```bash
+# Find the PRODUCT_HEATMAP work dir from your last failed run
+pixi run -e env-nf nextflow log <last-run-name> -f process,workdir | grep PRODUCT
+
+# Delete it (forces Nextflow to re-run with the patched module)
+rm -rf <work_dir_path>
+
+# Resume — all annotation steps will be cached, only PRODUCT_HEATMAP re-runs
+cd ~/software/taxonomy_bundle
+pixi run -e env-nf nextflow run WrightonLabCSU/DRAM \
+  -revision dev -profile apptainer,full_mode -resume \
+  --anno_dbs kofam,dbcan,camper,fegenie,methyl,cant_hyd,sulfur,merops,metals,vog,viral \
+  --input_fasta ~/software/taxonomy_bundle/input_genomes \
+  --outdir /media/bharat/volume1/databases/dram_results_YYYYMMDD \
+  [... same --*_db flags ...]
+```
+
+**⚠️ Important:** This patch will be **overwritten** if you run `nextflow pull WrightonLabCSU/DRAM`
+or `pixi run -e env-nf setup-dram-pipeline`. Re-apply the patch after any pipeline update until
+the upstream bug is fixed in a future `dram-viz` release.
+
+**Bug report:** Filed at https://github.com/WrightonLabCSU/dram-viz/issues
+
+---
+
+### Known Bug Fix: Stale parameters in nextflow.config (v2.0.0-beta26)
+
+**Affected version:** Users who ran DRAM2 before `v2.0.0-beta26` and have a local
+`~/software/taxonomy_bundle/nextflow.config` that was generated from an older template.
+
+**Root cause:** Two parameters were renamed in `v2.0.0-beta26` (commit `91edea7e`):
+
+| Old parameter | New parameter | Notes |
+|---------------|---------------|-------|
+| `groupby_column` | *(removed)* | Now hardcoded internally as `params.CONSTANTS.FASTA_COLUMN` |
+| `rules_tsv` | `trait_rules_tsv` | Renamed to avoid conflict with new `viz_rules_tsv` |
+
+**Symptoms:**
+```
+WARN: The following invalid input values have been detected:
+* --groupby_column: input_fasta
+* --rules_tsv: /home/bharat/.nextflow/assets/WrightonLabCSU/DRAM/bin/assets/traits_rules.tsv
+```
+
+**Fix:**
+
+```bash
+# Check if stale parameters exist in your local config
+grep -n "groupby_column\|rules_tsv\|trait_rules_tsv" ~/software/taxonomy_bundle/nextflow.config
+
+# Remove groupby_column line
+sed -i 's/groupby_column = .*/\/\/ groupby_column removed - now hardcoded in pipeline/' \
+  ~/software/taxonomy_bundle/nextflow.config
+
+# Rename rules_tsv to trait_rules_tsv (only if not already renamed)
+# Check first: grep "rules_tsv" ~/software/taxonomy_bundle/nextflow.config
+# If it shows plain 'rules_tsv =' (not 'trait_rules_tsv'), run:
+sed -i 's/^\s*rules_tsv = /    trait_rules_tsv = /' \
+  ~/software/taxonomy_bundle/nextflow.config
+
+# Verify — should show trait_rules_tsv, not rules_tsv or groupby_column
+grep -n "rules_tsv\|groupby_column" ~/software/taxonomy_bundle/nextflow.config
+```
 
 ---
 
