@@ -7,9 +7,46 @@ genomes and MAGs against multiple functional databases to produce metabolic prof
 pathway completeness estimates, and interactive summary visualisations.
 
 **Environment:** `env-nf` (Nextflow + Apptainer + OpenJDK 17)  
-**Pipeline:** `WrightonLabCSU/DRAM` (branch: `dev`)  
+**Pipeline:** `WrightonLabCSU/DRAM` (branch: `dev`, version: 2.0.0-beta24)  
 **Database:** ~546 GB at `$EXTERNAL_VAULT/dram_db/`  
-**RAM requirement:** ~220 GB with UniRef90 | ~50 GB with KOfam only (no UniRef)
+**RAM requirement:** ~64 GB (without KEGG/UniRef) | ~220 GB (with UniRef)
+
+**Position in taxonomy_bundle workflow:**
+```
+MetaWRAP (bin refinement)
+    ↓
+Refined MAGs (metawrap_70_10_bins/)
+    ↓
+DRAM2 ← metabolic annotation (this guide)
+    ↓
+metabolism_summary.xlsx + product.html
+```
+
+---
+
+## Workflow Diagram
+
+```
+Input FASTA (MAG or isolate genome)
+    ↓
+CALL_GENES (Prodigal)       QUAST (assembly stats)
+    ↓
+MMSEQS_INDEX (protein index)
+    ↓
+┌─────────────────────────────────────────────────────────┐
+│ DATABASE SEARCHES (parallel)                            │
+│  HMM searches:   kofam, dbcan, camper, canthyd,        │
+│                  sulfur, fegenie, metals, vog           │
+│  MMseqs2:        merops, pfam, viral, camper, canthyd   │
+│  tRNA/rRNA:      tRNA_SCAN, rRNA_SCAN                   │
+└─────────────────────────────────────────────────────────┘
+    ↓
+COMBINE_ANNOTATIONS (raw-annotations.tsv)
+    ↓
+SUMMARIZE (metabolism_summary.xlsx, traits.xlsx)
+    ↓
+VISUALIZE (product.html — interactive heatmap)
+```
 
 ---
 
@@ -20,11 +57,11 @@ This is the most commonly misunderstood aspect of DRAM2 for new users.
 ### What the conf/ files are
 
 When you run `pixi run -e env-nf setup-dram-pipeline`, Nextflow downloads the full
-DRAM2 pipeline to:
+DRAM2 pipeline including a `conf/` directory to:
 
 ```
 ~/.nextflow/assets/WrightonLabCSU/DRAM/
-├── nextflow.config          ← main config (includes the conf/ files below)
+├── nextflow.config          ← main pipeline config
 ├── conf/
 │   ├── base.config          ← CPU/memory resource requirements per process
 │   ├── constants.config     ← pipeline-wide constants (container versions, paths)
@@ -37,38 +74,44 @@ DRAM2 pipeline to:
 
 ### Critical point: You do NOT create or edit these files
 
-These conf files are **part of the DRAM2 pipeline source code** — they are downloaded
-automatically by Nextflow and live inside `~/.nextflow/assets/WrightonLabCSU/DRAM/conf/`.
-They define internal resource allocation (how many CPUs/GB RAM each pipeline step gets)
-and are maintained by the WrightonLab team.
+These conf files are **part of the DRAM2 pipeline source code** downloaded automatically
+by Nextflow. They define internal resource allocation and are maintained by the
+WrightonLab team.
 
-**You only interact with one file:** `nextflow.config` in your working directory
-(your project root), which you download separately:
+A backup copy is stored in the taxonomy_bundle archive for recovery:
+
+```
+~/software/taxonomy_bundle/_archive/misc/conf/
+├── base.config
+├── constants.config
+├── modules.config
+└── no_kegg.config
+```
+
+If you ever see the error `conf/constants.config not found`, restore them:
 
 ```bash
+mkdir -p ~/software/taxonomy_bundle/conf/
+cp ~/software/taxonomy_bundle/_archive/misc/conf/*.config \
+   ~/software/taxonomy_bundle/conf/
+```
+
+### The only file you edit: nextflow.config (in your project root)
+
+Download the template once:
+
+```bash
+cd ~/software/taxonomy_bundle
 pixi run -e env-nf dram-get-config
 # Downloads to: ~/software/taxonomy_bundle/nextflow.config
 ```
 
-### What each conf file does (reference only)
-
-| File | Purpose | Who edits it |
-|------|---------|--------------|
-| `conf/base.config` | Default CPU/RAM per Nextflow process label | Pipeline devs only |
-| `conf/constants.config` | Container image tags, pipeline version constants | Pipeline devs only |
-| `conf/modules.config` | Output publishing rules (copy/symlink, directories) | Pipeline devs only |
-| `conf/no_kegg.config` | Reduced resource profile when KEGG db is absent | Pipeline devs only |
-
-### The only file you edit: nextflow.config (in your project root)
-
-This is your local override file. Key settings to check after downloading:
+Key settings to verify:
 
 ```groovy
-// nextflow.config (in ~/software/taxonomy_bundle/)
-
 params {
     max_cpus   = 32        // set to your machine's CPU count
-    max_memory = '220.GB'  // set to your available RAM
+    max_memory = '64.GB'   // 64GB sufficient for no-uniref runs
     max_time   = '240.h'
 }
 
@@ -78,8 +121,9 @@ apptainer {
 }
 ```
 
-**Location matters:** Nextflow automatically reads `nextflow.config` from the
-**directory where you launch the command**. Always run DRAM2 from your project root:
+**Location matters:** Always run DRAM2 from your project root — Nextflow reads
+`nextflow.config` from the launch directory:
+
 ```bash
 cd ~/software/taxonomy_bundle
 pixi run -e env-nf dram-run
@@ -87,228 +131,292 @@ pixi run -e env-nf dram-run
 
 ---
 
-## Database Structure
+## Step-by-Step Setup
 
-The DRAM2 database has a nested structure that often causes confusion:
+### Step 1 — Pull/update the pipeline (run before EVERY annotation run)
 
-```
-$EXTERNAL_VAULT/dram_db/           ← point --database_dir here
-├── databases/                     ← actual annotation databases
-│   ├── uniref/       477 GB       ← UniRef90 (largest, optional via --skip_uniref)
-│   ├── db_descriptions/ 36 GB    ← functional descriptions lookup
-│   ├── kofam/        14 GB        ← KOfam KEGG orthology HMMs
-│   ├── pfam/          8.8 GB      ← Pfam protein families
-│   ├── vogdb/         4.5 GB      ← Viral orthologous groups
-│   ├── merops/        3.6 GB      ← Peptidase database
-│   ├── viral/         1.6 GB      ← RefSeq viral sequences
-│   ├── camper/        864 MB      ← Carbon/energy metabolism
-│   ├── canthyd/       877 MB      ← Carbon/hydrogen cycling
-│   ├── dbcan/         202 MB      ← CAZymes (carbohydrate-active enzymes)
-│   ├── fegenie/       6.6 MB      ← Iron cycling genes
-│   ├── sulfur/        1.7 MB      ← Sulfur cycling genes
-│   ├── metals/        58 MB       ← Metal resistance/cycling
-│   └── methyl/        56 KB       ← Methylotrophy
-├── multiqc/                       ← QC reports from database build
-└── pipeline_info/                 ← Nextflow pipeline execution info
-```
-
-**Important:** Pass `$EXTERNAL_VAULT/dram_db` as `--database_dir`, NOT
-`$EXTERNAL_VAULT/dram_db/databases`. The pipeline resolves the nested path internally.
-
----
-
-## Input File Requirements
-
-### File format
-- Extension must be `.fasta` (not `.fna` or `.fa`)
-- DRAM2 uses the filename (minus extension) as the genome identifier throughout all outputs
-- Nucleotide sequences only (not protein)
-- Can be draft assemblies (multiple contigs per file)
-
-### Renaming .fna to .fasta
 ```bash
-# Single genome
-cp genome.fna input_genomes/genome.fasta
+pixi run -e env-nf setup-dram-pipeline
+# Runs: nextflow pull WrightonLabCSU/DRAM -r dev
+# Installs/updates to: ~/.nextflow/assets/WrightonLabCSU/DRAM/
+```
 
-# Batch rename
-for f in /path/to/genomes/*.fna; do
-    base=$(basename "$f" .fna)
-    cp "$f" input_genomes/"${base}.fasta"
+**Run this before every DRAM2 annotation run.** DRAM2 is in active beta development
+(currently 2.0.0-beta24) and updates frequently with bug fixes and new features.
+If you skip this step you will see:
+
+```
+NOTE: Your local project version looks outdated - a different revision is available
+in the remote repository [f03804bca4]
+```
+
+This is a warning that your cached pipeline is behind the latest commit. The run
+will still proceed with the old version, but you may miss important bug fixes.
+
+The pull takes less than 1 minute and is always safe to run.
+
+### Step 2 — Download nextflow.config template
+
+```bash
+cd ~/software/taxonomy_bundle
+pixi run -e env-nf dram-get-config
+```
+
+### Step 3 — Prepare input directory
+
+DRAM2 scans a directory for genome files. **Extension must be `.fasta`.**
+
+```bash
+mkdir -p ~/software/taxonomy_bundle/input_genomes/
+
+# Single genome — rename .fna to .fasta
+cp /path/to/genome.fna \
+   ~/software/taxonomy_bundle/input_genomes/genome_name.fasta
+
+# Batch rename all MAGs from .fa to .fasta
+for f in /path/to/bins/*.fa; do
+    base=$(basename "$f" .fa)
+    cp "$f" ~/software/taxonomy_bundle/input_genomes/"${base}.fasta"
 done
-```
 
-### Input directory structure
-All genomes must be in a single flat directory (no subdirectories):
-```
-input_genomes/
-├── Hyphomicrobium_sp_NDB2Meth4.fasta
-├── bin21.fasta
-└── bin22.fasta
+# Verify
+ls ~/software/taxonomy_bundle/input_genomes/
 ```
 
 ---
 
 ## Running DRAM2
 
-### Standard run (all databases including UniRef90)
+### Pre-flight checklist (before every run)
 
 ```bash
-cd ~/software/taxonomy_bundle
-mkdir -p input_genomes
+# 1. Pull latest pipeline — takes less than 1 minute, always do this first
+pixi run -e env-nf setup-dram-pipeline
 
-# Copy/rename your genome
-cp /media/bharat/volume1/databases/test_genome/Hyphomicrobium_sp._NDB2Meth4.fna \
-   input_genomes/Hyphomicrobium_sp_NDB2Meth4.fasta
+# 2. Confirm input files have .fasta extension
+ls ~/software/taxonomy_bundle/input_genomes/
 
-# Run annotation
-pixi run -e env-nf dram-run
+# 3. Check disk space — need ~5 GB free per genome for outputs
+df -h /media/bharat/volume1/
+
+# 4. Start tmux session to prevent disconnection
+tmux new -s dram2_run
 ```
 
-### Memory-constrained run (skip UniRef90, ~50 GB RAM)
+### Important: Always use --anno_dbs
 
-If your system has less than 220 GB RAM, skip UniRef90:
+Without `--anno_dbs`, DRAM2 may attempt KEGG annotation (paid licence) or UniRef
+(22+ hours, 477 GB). Always specify databases explicitly.
+
+**Include:** `kofam,dbcan,camper,fegenie,methyl,cant_hyd,sulfur,merops,metals,vog,viral`  
+**Exclude:** `kegg` (paid licence), `uniref` (22+ hours)
+
+### Standard run (recommended — no KEGG/UniRef)
+
+Always run inside tmux to prevent disconnection:
 
 ```bash
+tmux new -s dram2_run
+
 cd ~/software/taxonomy_bundle
 
-nextflow run WrightonLabCSU/DRAM -r dev \
-    -profile apptainer \
-    --annotate \
-    --input_fasta "$PIXI_PROJECT_ROOT/input_genomes" \
-    --database_dir "$EXTERNAL_VAULT/dram_db" \
-    --outdir "$EXTERNAL_VAULT/dram_results_$(date +%Y%m%d)" \
-    -w "$NEXTFLOW_WORK" \
-    --skip_uniref
-```
+pixi run -e env-nf nextflow run WrightonLabCSU/DRAM \
+  -revision dev \
+  -profile apptainer,full_mode \
+  --anno_dbs "kofam,dbcan,camper,fegenie,methyl,cant_hyd,sulfur,merops,metals,vog,viral" \
+  --input_fasta ~/software/taxonomy_bundle/input_genomes \
+  --outdir /media/bharat/volume1/databases/dram_results_$(date +%Y%m%d) \
+  --kofam_db /media/bharat/volume1/databases/dram_db/databases/kofam/ \
+  --kofam_list /media/bharat/volume1/databases/dram_db/databases/kofam/kofam_ko_list.tsv \
+  --dbcan_db /media/bharat/volume1/databases/dram_db/databases/dbcan/ \
+  --dbcan_fam_activities /media/bharat/volume1/databases/dram_db/databases/dbcan/dbcan.fam-activities.tsv \
+  --pfam_mmseq_db /media/bharat/volume1/databases/dram_db/databases/pfam/mmseqs/ \
+  --merops_db /media/bharat/volume1/databases/dram_db/databases/merops/ \
+  --viral_db /media/bharat/volume1/databases/dram_db/databases/viral/ \
+  --vog_db /media/bharat/volume1/databases/dram_db/databases/vogdb/ \
+  --vog_list /media/bharat/volume1/databases/dram_db/databases/vogdb/vog_annotations_latest.tsv.gz \
+  --camper_hmm_db /media/bharat/volume1/databases/dram_db/databases/camper/hmm/ \
+  --camper_hmm_list /media/bharat/volume1/databases/dram_db/databases/camper/hmm/camper_hmm_scores.tsv \
+  --camper_mmseqs_db /media/bharat/volume1/databases/dram_db/databases/camper/mmseqs/ \
+  --camper_mmseqs_list /media/bharat/volume1/databases/dram_db/databases/camper/mmseqs/camper_scores.tsv \
+  --canthyd_hmm_db /media/bharat/volume1/databases/dram_db/databases/canthyd/hmm/ \
+  --cant_hyd_hmm_list /media/bharat/volume1/databases/dram_db/databases/canthyd/hmm/cant_hyd_HMM_scores.tsv \
+  --canthyd_mmseqs_db /media/bharat/volume1/databases/dram_db/databases/canthyd/mmseqs/ \
+  --canthyd_mmseqs_list /media/bharat/volume1/databases/dram_db/databases/canthyd/mmseqs/cant_hyd_BLAST_scores.tsv \
+  --fegenie_db /media/bharat/volume1/databases/dram_db/databases/fegenie/ \
+  --fegenie_list /media/bharat/volume1/databases/dram_db/databases/fegenie/fegenie_iron_cut_offs.txt \
+  --sulfur_db /media/bharat/volume1/databases/dram_db/databases/sulfur/ \
+  --methyl_db /media/bharat/volume1/databases/dram_db/databases/methyl/ \
+  --metals_db /media/bharat/volume1/databases/dram_db/databases/metals/ \
+  --sql_descriptions_db /media/bharat/volume1/databases/dram_db/databases/db_descriptions/description_db.sqlite \
+  2>&1 | tee ~/software/taxonomy_bundle/dram2_run.log
 
-### Single genome direct run
-
-```bash
-nextflow run WrightonLabCSU/DRAM -r dev \
-    -profile apptainer \
-    --annotate \
-    --input_fasta "/path/to/genome.fasta" \
-    --database_dir "$EXTERNAL_VAULT/dram_db" \
-    --outdir "$EXTERNAL_VAULT/dram_Hyphomicrobium_$(date +%Y%m%d)" \
-    -w "$NEXTFLOW_WORK"
+# Detach from tmux: Ctrl+B then D
+# Reattach:         tmux attach -t dram2_run
 ```
 
 ### Resume interrupted run
 
-Nextflow caches completed steps. If a run fails or is interrupted:
-
 ```bash
-pixi run -e env-nf dram-run -resume
-# Or directly:
-nextflow run WrightonLabCSU/DRAM -r dev ... -resume
+cd ~/software/taxonomy_bundle
+pixi run -e env-nf nextflow run WrightonLabCSU/DRAM \
+  -revision dev \
+  -profile apptainer,full_mode \
+  -resume \
+  --anno_dbs "kofam,dbcan,camper,fegenie,methyl,cant_hyd,sulfur,merops,metals,vog,viral" \
+  --input_fasta ~/software/taxonomy_bundle/input_genomes \
+  --outdir /media/bharat/volume1/databases/dram_results_YYYYMMDD \
+  [... same --*_db flags as above ...]
+```
+
+### Key parameters explained
+
+| Parameter | Value | Why |
+|-----------|-------|-----|
+| `-profile apptainer,full_mode` | both required | `apptainer` = container engine; `full_mode` = annotate+summarize+visualize |
+| `--anno_dbs` | comma-separated list | explicitly sets which databases to use — always specify |
+| `-revision dev` | dev branch | stable tested version |
+| `--annotate` | flag | required if not using `full_mode` |
+
+---
+
+## Database Structure Reference
+
+```
+$EXTERNAL_VAULT/dram_db/
+└── databases/                      ← actual annotation databases
+    ├── uniref/        477 GB        ← EXCLUDED (22+ hours run time)
+    ├── db_descriptions/ 36 GB      ← functional descriptions lookup
+    ├── kofam/         14 GB         ← KEGG orthology HMMs
+    ├── pfam/           8.8 GB       ← protein families
+    ├── vogdb/          4.5 GB       ← viral orthologous groups
+    ├── merops/         3.6 GB       ← peptidases
+    ├── viral/          1.6 GB       ← RefSeq viral
+    ├── camper/         864 MB       ← carbon/energy metabolism
+    ├── canthyd/        877 MB       ← hydrocarbon degradation
+    ├── dbcan/          202 MB       ← CAZymes
+    ├── fegenie/        6.6 MB       ← iron cycling
+    ├── sulfur/         1.7 MB       ← sulfur cycling
+    └── metals/         58 MB        ← metal resistance
 ```
 
 ---
 
-## Key Parameters
+## Expected Run Times (Tower 7810)
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `--annotate` | Run annotation step | required |
-| `--input_fasta` | Path to dir with `.fasta` files or single `.fasta` | required |
-| `--database_dir` | Path to DRAM2 database root | required |
-| `--outdir` | Output directory | required |
-| `-w` | Nextflow work directory (temp files) | `$NEXTFLOW_WORK` |
-| `--skip_uniref` | Skip UniRef90 (saves ~170 GB RAM, reduces annotation depth) | false |
-| `-resume` | Resume from last successful checkpoint | — |
-| `-profile apptainer` | Use Apptainer containers (required on this system) | — |
-| `-r dev` | Use dev branch (required until v2 stable release) | — |
+| Input | Databases | Expected time |
+|-------|-----------|---------------|
+| 1 genome (~3 MB) | 11 databases (no kegg/uniref) | 25–35 min |
+| 10 MAGs | 11 databases | 2–4 hours |
+| 32 MAGs (all POND bins) | 11 databases | 6–12 hours |
 
 ---
 
 ## Output Structure
 
 ```
-$EXTERNAL_VAULT/dram_results_YYYYMMDD/
-├── annotations/
-│   └── Hyphomicrobium_sp_NDB2Meth4.annotations.tsv   ← per-gene annotations
-├── genbank/
-│   └── Hyphomicrobium_sp_NDB2Meth4.gbk               ← GenBank format
-├── genes/
-│   ├── Hyphomicrobium_sp_NDB2Meth4.faa                ← protein sequences
-│   └── Hyphomicrobium_sp_NDB2Meth4.fna                ← gene sequences
-└── distillate/
-    ├── genome_stats.tsv                               ← completeness, quality
-    ├── metabolism_summary.xlsx                        ← pathway summary (Excel)
-    └── product.html                                   ← interactive visualisation
+dram_results_YYYYMMDD/
+├── ANNOTATE/
+│   ├── PRODIGAL/               ← called genes (.faa protein files)
+│   ├── MMSEQS2/                ← MMseqs2 search results
+│   ├── HMM_SEARCH/             ← HMM results per database
+│   ├── QUAST/                  ← assembly statistics
+│   ├── RENAMED_GFFS/           ← gene annotation files
+│   └── raw-annotations.tsv    ← combined raw annotations
+├── SUMMARIZE/
+│   ├── metabolism_summary.xlsx ← main metabolic distillation ★
+│   ├── genome_stats.tsv        ← assembly stats per genome
+│   ├── summarized_genomes.tsv  ← per-genome summary table
+│   └── traits.xlsx             ← high-level metabolic traits ★
+├── VISUALIZE/
+│   ├── product.html            ← interactive metabolic heatmap ★
+│   └── product.tsv             ← heatmap data as table
+├── multiqc/
+│   └── multiqc_report.html     ← run QC report
+└── pipeline_info/
+    ├── execution_report.html
+    ├── execution_trace.txt
+    └── execution_timeline.html
 ```
 
-### Most useful outputs
+★ = primary outputs for biological interpretation
 
-**`metabolism_summary.xlsx`** — the primary deliverable. Contains sheets for:
-- Carbon metabolism (methylotrophy, fermentation, aerobic respiration)
-- Nitrogen metabolism (fixation, denitrification, nitrification)
-- Sulfur cycling
-- Electron transport chain
-- Energy conservation
+---
 
-**`product.html`** — open in browser for an interactive heatmap of metabolic
-pathways across all annotated genomes.
+## Interpreting Results
 
-**`annotations.tsv`** — per-gene table with KEGG, Pfam, COG, EC numbers, and
-product descriptions.
+### product.html (Interactive Heatmap)
+
+Open in any web browser:
+```bash
+xdg-open /media/bharat/volume1/databases/dram_results_*/VISUALIZE/product.html
+```
+
+**Colour coding:** Teal/Green = pathway present | Grey = absent
+
+| Category | What it shows |
+|----------|---------------|
+| Module | Core carbon metabolism (TCA, glycolysis, pentose phosphate) |
+| I–V | Electron transport chains and respiratory complexes |
+| Nitrogen | N-fixation, nitrate reduction, ammonia oxidation |
+| Sulfur | Sulfate reduction, thiosulfate oxidation |
+| C1 metabolism | Methane/methylamine cycling — key for methylotrophs |
+| CAZy | Carbohydrate-active enzymes (cellulose, chitin, starch) |
+| SCFA/alcohol | Short-chain fatty acid and alcohol conversions |
+
+### metabolism_summary.xlsx
+
+Detailed per-gene annotation. Key columns: `gene_id`, `ko_id`, `kegg_hit`,
+`dbcan_hit`, `camper_hit`, `sulfur_hit`, `fegenie_hit`.
+
+### traits.xlsx
+
+One row per genome. Columns are high-level metabolic traits (aerobic/anaerobic,
+sulfate reducer, methanogen, methylotroph etc.).
 
 ---
 
 ## Troubleshooting
 
-### "Input fasta files must have .fasta extension"
-Rename your `.fna` or `.fa` files to `.fasta` — see Input File Requirements above.
-
-### Out of memory errors
-Use `--skip_uniref` to reduce RAM requirements from ~220 GB to ~50 GB.
-
-### Nextflow work directory fills disk
-The `-w $NEXTFLOW_WORK` directory accumulates cached intermediate files. Clean after
-successful runs:
-```bash
-# Only clean after confirming outputs are complete
-nextflow clean -f
-# Or remove specific runs:
-rm -rf $NEXTFLOW_WORK/xx/yyyyyy...
-```
-
-### Pipeline not found
-Re-pull the pipeline:
-```bash
-pixi run -e env-nf setup-dram-pipeline
-# Runs: nextflow pull WrightonLabCSU/DRAM -r dev
-```
-
-### conf/ files not found error
-This means the pipeline was not pulled correctly. The conf/ files live inside
-`~/.nextflow/assets/WrightonLabCSU/DRAM/conf/` and are downloaded automatically
-by `nextflow pull`. Run `setup-dram-pipeline` again.
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `KEGG database file not found` | `full_mode` triggers KEGG check | Always use `--anno_dbs` to explicitly exclude kegg |
+| `Argument of file() cannot be null` | Database path null but still called | Use `--anno_dbs` to exclude unwanted databases |
+| Only MULTIQC runs, nothing else | Missing `--annotate` or `full_mode` | Use `-profile apptainer,full_mode` |
+| UniRef runs for 20+ hours | UniRef is 477 GB | Exclude from `--anno_dbs` |
+| `conf/constants.config not found` | Config files missing | Restore from `_archive/misc/conf/` |
+| `nextflow: command not found` | Not in pixi env | Use `pixi run -e env-nf nextflow ...` |
+| `WARN: invalid input values: --database_dir` | Warning only, not an error | Pipeline resolves paths internally — safe to ignore |
+| NOTE: local project version outdated | Newer pipeline commit available | Run `setup-dram-pipeline` to update, or ignore |
+| Input file extension error | `.fna` or `.fa` used | Rename all inputs to `.fasta` |
 
 ---
 
-## Memory Guide for This System
+## Running All 32 POND MAGs
 
-This system (Dell Precision Tower 7810) has the following relevant constraints:
+Once the single-genome test is confirmed working:
 
-| Config | RAM needed | Time (single MAG) | UniRef used |
-|--------|-----------|-------------------|-------------|
-| Full (default) | ~220 GB | 2-4 hrs | Yes |
-| `--skip_uniref` | ~50 GB | 1-2 hrs | No |
-| KOfam only | ~30 GB | <1 hr | No |
-
-Check available RAM before running:
 ```bash
-free -h
-# Aim for at least 80% of required RAM to be free before starting
+mkdir -p ~/software/taxonomy_bundle/input_genomes_pond/
+
+for f in /path/to/metawrap_70_10_bins/*.fa; do
+    base=$(basename "$f" .fa)
+    cp "$f" ~/software/taxonomy_bundle/input_genomes_pond/"${base}.fasta"
+done
+
+ls ~/software/taxonomy_bundle/input_genomes_pond/ | wc -l  # should be 32
 ```
+
+Then run with `--input_fasta ~/software/taxonomy_bundle/input_genomes_pond`. The
+`product.html` heatmap will show all 32 MAGs as rows for direct metabolic comparison
+across the POND community.
 
 ---
 
 ## Pixi Tasks Reference
 
 ```bash
-# Pull/update pipeline
+# Pull/update pipeline from GitHub
 pixi run -e env-nf setup-dram-pipeline
 
 # Download nextflow.config template to project root
@@ -317,7 +425,7 @@ pixi run -e env-nf dram-get-config
 # Verify pipeline + database access
 pixi run -e env-nf dram-verify
 
-# Run annotation on input_genomes/
+# Run annotation on input_genomes/ (simple — may need explicit db flags if KEGG errors)
 pixi run -e env-nf dram-run
 
 # View all DRAM2 options
