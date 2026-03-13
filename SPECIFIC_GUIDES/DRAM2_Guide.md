@@ -66,34 +66,63 @@ DRAM2 pipeline including a `conf/` directory to:
 │   ├── base.config          ← CPU/memory resource requirements per process
 │   ├── constants.config     ← pipeline-wide constants (container versions, paths)
 │   ├── modules.config       ← per-module publish directory and mode settings
-│   └── no_kegg.config       ← alternate resource settings when KEGG is skipped
+│   ├── slurm.config         ← HPC/SLURM cluster settings (not used on Tower 7810)
+│   ├── test.config          ← minimal test run configuration
+│   └── test_skips.config    ← test run with skipped steps
 ├── main.nf                  ← main Nextflow workflow
 ├── modules/                 ← individual process definitions
 └── subworkflows/            ← reusable workflow components
 ```
 
-### Critical point: You do NOT create or edit these files
+### Critical point: You do NOT create or edit the pipeline conf files
 
-These conf files are **part of the DRAM2 pipeline source code** downloaded automatically
-by Nextflow. They define internal resource allocation and are maintained by the
-WrightonLab team.
+The pipeline conf files are **part of the DRAM2 pipeline source code** downloaded
+automatically by Nextflow. They define internal resource allocation and are maintained
+by the WrightonLab team. Do not edit them.
 
-A backup copy is stored in the taxonomy_bundle archive for recovery:
+### The custom no_kegg.config — vital for running without KEGG
+
+KEGG is a **paid subscription database**. Without explicitly disabling it, DRAM2 will
+attempt to run KEGG annotation and crash. The `no_kegg.config` is a **custom config
+file you created** in `~/software/taxonomy_bundle/conf/` to suppress KEGG and UniRef:
 
 ```
-~/software/taxonomy_bundle/_archive/misc/conf/
-├── base.config
-├── constants.config
-├── modules.config
-└── no_kegg.config
+~/software/taxonomy_bundle/conf/
+└── no_kegg.config    ← YOUR custom file — not part of DRAM2 pipeline
 ```
 
-If you ever see the error `conf/constants.config not found`, restore them:
+Contents of `no_kegg.config`:
+
+```groovy
+params {
+    use_kegg  = false
+    kegg_db   = null
+    uniref_db = null
+}
+```
+
+This file is passed to Nextflow at runtime with `-c`:
+
+```bash
+pixi run -e env-nf nextflow run WrightonLabCSU/DRAM \
+  -revision dev \
+  -profile apptainer,full_mode \
+  -c ~/software/taxonomy_bundle/conf/no_kegg.config \
+  ...
+```
+
+**Do not delete this file.** Without it, DRAM2 will attempt KEGG annotation and fail.
+If it is ever lost, recreate it:
 
 ```bash
 mkdir -p ~/software/taxonomy_bundle/conf/
-cp ~/software/taxonomy_bundle/_archive/misc/conf/*.config \
-   ~/software/taxonomy_bundle/conf/
+cat > ~/software/taxonomy_bundle/conf/no_kegg.config << 'EOF'
+params {
+    use_kegg  = false
+    kegg_db   = null
+    uniref_db = null
+}
+EOF
 ```
 
 ### The only file you edit: nextflow.config (in your project root)
