@@ -133,7 +133,56 @@ pixi run -e env-nf dram-run
 
 ## Step-by-Step Setup
 
-### Step 1 — Pull/update the pipeline (run before EVERY annotation run)
+### When to pull pipeline updates
+
+**Do NOT blindly pull before every run** — while the guide previously recommended this,
+`v2.0.0-beta26` introduced a breaking bug in `dram-viz 0.2.5` that causes `PRODUCT_HEATMAP`
+to hang indefinitely. Pulling updates will **overwrite the patch** applied in the
+troubleshooting section below.
+
+**Safe to pull when:**
+- You check the changelog first: https://github.com/WrightonLabCSU/DRAM/blob/dev/CHANGELOG.md
+- The `dram-viz` container hash in `product_heatmap.nf` has changed to a new fixed version
+- You are prepared to re-apply the `product_heatmap.nf` patch afterwards
+
+**Check if upstream has fixed the bug before pulling:**
+```bash
+curl -s https://raw.githubusercontent.com/WrightonLabCSU/DRAM/dev/modules/local/product/product_heatmap.nf | grep container
+```
+
+If the container hash is still `461ef0d1ed919a7e`, the bug is not fixed — do not pull.
+If the hash has changed, check the dram-viz changelog before deciding to update.
+
+**After any pull, always re-apply the patch:**
+```bash
+cat > ~/.nextflow/assets/WrightonLabCSU/DRAM/modules/local/product/product_heatmap.nf << 'EOF'
+process PRODUCT_HEATMAP {
+    label 'process_small'
+    errorStrategy 'finish'
+
+    conda "${moduleDir}/environment.yml"
+    container "community.wave.seqera.io/library/python_dram-viz:16eae7534cb2ead2"
+
+    input:
+    path( ch_final_annots, stageAs: "raw-annotations.tsv")
+    val(fasta_column)
+    path(rules_tsv)
+    val(rules_system)
+
+    output:
+    path( "product.html" ), emit: product_html
+
+    script:
+    """
+    dram_viz --annotations ${ch_final_annots} --groupby-column ${fasta_column}
+    """
+}
+EOF
+```
+
+---
+
+### Step 1 — Pull/update the pipeline (with caution)
 
 ```bash
 pixi run -e env-nf setup-dram-pipeline
@@ -141,19 +190,18 @@ pixi run -e env-nf setup-dram-pipeline
 # Installs/updates to: ~/.nextflow/assets/WrightonLabCSU/DRAM/
 ```
 
-**Run this before every DRAM2 annotation run.** DRAM2 is in active beta development
-(currently 2.0.0-beta24) and updates frequently with bug fixes and new features.
-If you skip this step you will see:
+**⚠️ Do NOT pull blindly before every run.** See the "When to pull pipeline updates"
+section above. Pulling will overwrite the `product_heatmap.nf` patch and re-introduce
+the `dram-viz 0.2.5` hang bug. Always re-apply the patch after any pull.
 
+If you see this warning during a run:
 ```
 NOTE: Your local project version looks outdated - a different revision is available
 in the remote repository [f03804bca4]
 ```
 
-This is a warning that your cached pipeline is behind the latest commit. The run
-will still proceed with the old version, but you may miss important bug fixes.
-
-The pull takes less than 1 minute and is always safe to run.
+This is informational only — your run will proceed with the current version. Check
+the changelog before deciding to pull.
 
 ### Step 2 — Download nextflow.config template
 
