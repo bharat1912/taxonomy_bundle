@@ -554,7 +554,11 @@ pixi run -e env-nf nextflow run WrightonLabCSU/DRAM \
 or `pixi run -e env-nf setup-dram-pipeline`. Re-apply the patch after any pipeline update until
 the upstream bug is fixed in a future `dram-viz` release.
 
-**Bug report:** Filed at https://github.com/WrightonLabCSU/dram-viz/issues
+**Bug reports filed:**
+- dram-viz repo: https://github.com/WrightonLabCSU/dram-viz/issues/32
+- DRAM main repo: https://github.com/WrightonLabCSU/DRAM/issues/493
+
+Monitor these issues to know when the upstream fix has been released and it is safe to update `dram-viz` without needing the patch.
 
 ---
 
