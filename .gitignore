@@ -1,129 +1,105 @@
 # =============================================================================
-# TAXONOMY BUNDLE - .gitignore
+# .gitignore for taxonomy_bundle
 # =============================================================================
 
-# Pixi environments (large, reproducible via pixi install)
-.pixi/
+# GENOME & SEQUENCE DATA
+input_genomes/
+ncbi_download/
+ncbi_download_*/
+*_dir/
+*.fna
+*.fna.gz
+*.fasta
+*.fasta.gz
+*.fastq
+*.fastq.gz
+*.fa
+*.fa.gz
+*.gbk
+*.gbff
+*.gbff.gz
+*.gff
+*.gff3
 
-# Local environment config (contains machine-specific paths)
-.env
-
-# Data directories
-raw_data/
-local_data/
-input_reads/
-input_reads_old/
-subsampled_reads/
-renamed_reads/
-data/
-
-# Results (reproducible by running workflows)
-results/
-results_autocycle/
-work/
-hybrid_taxonomy_analysis/
-high_conf_gene_results/
-sra_search_output/
-kmer_analysis/
-
-# Databases and symlinks (machine-specific)
-db_link/
-busco_downloads/
-
-# Sample-specific data
-SRR*/
-
-# Large files
+# ARCHIVES
+*.zip
+*.tar
 *.tar.gz
-*.tgz
+*.tar.bz2
 *.tar.xz
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
 
-# Binaries
-globusconnectpersonal*/
-bin/seaview/
+# CONTAINER IMAGES
+*.sif
+*.img
+*.simg
 
-# Logs
-*.log
+# DATABASES
+db_local/
+db_link/
+databases/
+*_db/
+*.db
+*.sqlite
+*.sqlite3
+*.msh
 
-# Snakemake metadata
-.snakemake/
-
-# Python cache
-__pycache__/
-*.pyc
-
-# Temporary files
-*.tmp
-null
-os
-pd
-re
-
-# Archive (keep locally, not on GitHub)
-_archive/
-
-# Nextflow cache and logs
+# NEXTFLOW & SNAKEMAKE
 .nextflow/
 .nextflow.log*
-
-# Nextflow work directory
 work/
+results/
+logs/
+*.log
+.snakemake/
+snakemake_*/
 
-# Example/old env files
-.env.example
+# PYTHON CACHE
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
 
-# Old pixi backup files
-pixi_*.toml
-pixi_*.lock
-pixi_lock*.lock
+# R ARTIFACTS
+.Rhistory
+.RData
+.Rproj.user/
+*.Rout
 
-# Old/generated files
-screen_output
-path_check.txt
-post_assembly_qc_done.flag
-null
-name,status,updated
-ref_project
-*.flag
+# BACLIFE WORKING FILES
+bacLIFE/data/input/
+bacLIFE/data/quarantine/
+bacLIFE/quality_audit/
+bacLIFE/busco_audit/
+bacLIFE/results/
+bacLIFE/logs/
+bacLIFE/blacklisted_list.txt
+downloaded.txt
+requested.txt
 
-# Test data
-test_dram2/
-test_mytaxa/
-test_genome.fna
-ecoli.fasta
-Ecoli.fasta
-Ecoli_fasta
-Ecoli_Sample.LargeContigs.fna
+# NCBI DOWNLOADS
+ncbi_dataset/
+ncbi_dataset.zip
+*.jsonl
 
-# Image files
-*.png
-*.jpg
-*.pdf
-'ChatGPT Image*'
+# EDITOR & OS JUNK
+.vscode/
+.idea/
+.DS_Store
+*~
+*.swp
+*.swo
+Thumbs.db
 
-# Development/chat exports
-CHATGPT_downloads/
-CLAUDE/
-
-# autocycler development scripts (keep only active ones)
-autocycler_all_scripts/
-
-# bacLIFE submodule (has its own git)
-bacLIFE/
-
-# busco symlink
-busco_downloads
-nextflow.config
-
-# Keep placeholder files even in ignored directories
-!local_data/.gitkeep
-!raw_data/.gitkeep
-!results/.gitkeep
-!input_reads/.gitkeep
-!local_data/
-local_data/*
-!local_data/.gitkeep
-config/*.bak
-conf/
-pond_bin21_tree/
-my_miga_project/
+# TEMP FILES
+*.tmp
+*.temp
+*.bak
