@@ -75,6 +75,8 @@ build/
 *.Rout
 
 # BACLIFE WORKING FILES
+bacLIFE/
+baclife_setup_data.sh
 bacLIFE/data/input/
 bacLIFE/data/quarantine/
 bacLIFE/quality_audit/
@@ -89,6 +91,58 @@ requested.txt
 ncbi_dataset/
 ncbi_dataset.zip
 *.jsonl
+
+# PIXI BACKUP FILES
+pixi_*.toml
+pixi_*.lock
+pixi_backup*.toml
+pixi_backup*.lock
+pixi_lock*.lock
+
+# IMAGE FILES
+*.png
+*.jpg
+*.jpeg
+
+# INPUT READS
+input_reads/
+input_reads_old/
+subsampled_reads/
+
+# WORKING & RESULTS DIRECTORIES
+results_autocycle/
+sra_search_output/
+kmer_analysis/
+hybrid_taxonomy_analysis/
+high_conf_gene_results/
+pond_bin21_tree/
+my_miga_project/
+test_mytaxa/
+_archive/
+null/
+CHATGPT_downloads/
+CLAUDE/
+autocycler_all_scripts/
+globusconnectpersonal-*/
+bin/
+conf/
+busco_downloads
+Ecoli_fasta
+ref_project
+SRR*/
+SRR27003629/
+
+# MISC GENERATED FILES
+*.flag
+path_check.txt
+screen_output
+name,status,updated
+os
+nextflow.config
+
+# ENVIRONMENT FILES (may contain API keys - never commit these)
+.env
+.env.example
 
 # EDITOR & OS JUNK
 .vscode/
