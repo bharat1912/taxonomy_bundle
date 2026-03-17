@@ -157,3 +157,6 @@ Thumbs.db
 *.tmp
 *.temp
 *.bak
+
+# Allow bacLIFE Snakefile to be tracked
+!bacLIFE/Snakefile
