@@ -510,6 +510,7 @@ fasttree = "*"
 # Note: biopython and scikit-learn will be resolved to the highest compatible version
 biopython = "*"
 scikit-learn = "*"
+openpyxl = "*"
 
 # --- PHASE 0: HELP ---
 [feature.baclife.tasks.baclife-help]
@@ -690,6 +691,7 @@ BAKTA_DB         = "$PIXI_PROJECT_ROOT/db_link/bakta"
 BUSCO_LINEAGE_SETS = "$PIXI_PROJECT_ROOT/db_link/busco"
 COMPAREM2_DATABASES  = "$EXTERNAL_VAULT/comparem2_db" 
 COMPAREM2_CONDA_PREFIX = "$EXTERNAL_VAULT/comparem2_conda" 
+
 
 # ============================================================================
 # 1. Environments
