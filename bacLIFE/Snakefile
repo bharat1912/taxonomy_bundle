@@ -54,7 +54,48 @@ rule final:
             binary_table_GCF = 'intermediate_files/BiG-SCAPE/big_scape_binary_table.txt',
             rename_matrix = 'MEGAMATRIX_renamed.txt',
             phylophlan = "intermediate_files/phylophlan/output_phylophlan/RAxML_bestTree.input_refined.tre"
-            
+        run:
+            # ── Auto-refresh Shiny app inputs ──────────────────────────────
+            import os, shutil
+            os.makedirs('Shiny_app/input', exist_ok=True)
+
+            # Copy pipeline outputs to Shiny_app/input/
+            shutil.copy('MEGAMATRIX_renamed.txt',                                              'Shiny_app/input/MEGAMATRIX_renamed.txt')
+            shutil.copy('names_equivalence.txt',                                               'Shiny_app/input/names_equivalence.txt')
+            shutil.copy('intermediate_files/BiG-SCAPE/big_scape_binary_table_renamed.txt',    'Shiny_app/input/big_scape_binary_table_renamed.txt')
+            shutil.copy('intermediate_files/BiG-SCAPE/annotation.txt',                        'Shiny_app/input/annotation.txt')
+            shutil.copy('intermediate_files/combined_proteins/combined_proteins.fasta',        'Shiny_app/input/combined_proteins.fasta')
+            shutil.copy('intermediate_files/BiG-SCAPE/bigscape_output/BGC_descriptions.txt',  'Shiny_app/input/BGC_descriptions.txt')
+            shutil.copy('intermediate_files/phylophlan/output_phylophlan/RAxML_bestTree.input_refined.tre', 'Shiny_app/input/RAxML_bestTree.input_refined.tre')
+
+            # Generate Shiny mapping_file.txt with 2-part names from names_equivalence.txt
+            # mapping_file.txt uses 4-part names — translate to 2-part for Shiny
+            neq = {}
+            with open('names_equivalence.txt') as f:
+                next(f)
+                for line in f:
+                    parts = line.strip().split('\t')
+                    if len(parts) == 2:
+                        neq[parts[0]] = parts[1]
+
+            shiny_mapping = 'Shiny_app/input/mapping_file.txt'
+            with open('mapping_file.txt') as fin, open(shiny_mapping, 'w') as fout:
+                header = fin.readline()
+                fout.write(header)
+                for line in fin:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    # Parse: "Sample_4part" "Lifestyle"
+                    parts = line.replace('"', '').split()
+                    if len(parts) >= 2:
+                        sample_4part = parts[0]
+                        lifestyle    = parts[1]
+                        display_name = neq.get(sample_4part, sample_4part)
+                        fout.write(f'"{display_name}" "{lifestyle}"\n')
+
+            print("Shiny_app/input/ refreshed with current pipeline outputs.")
+
 rule directories:
         input:
             expand("data/{genus}_{species}_{str}_{replicon}.fna", zip, genus = GENUS, species = SPECIES, str = STR, replicon = REPLICON)
