@@ -470,179 +470,348 @@ dram-run = { cmd = """
         -w "$NEXTFLOW_WORK"
     """, description = "Propels unknown NCBI sequences through high-fidelity functional annotation" }
 
-# ============================================================================
-# bacLIFE feature stack (Pangenomics & Life-cycle)
 
-# Instead of running individual Install: pixi run -e env-baclife baclife-install
-# Runi to get help for all commands: pixi run -e env-baclife baclife-help
+# ============================================================================
+# bacLIFE feature stack (Pangenomics & Lifestyle Classification)
+#
+# QUICK REFERENCE:
+#   Setup (once):     pixi run -e env-baclife baclife-help
+#   Fresh run:        pixi run -e env-baclife baclife-run-fresh
+#   Resume run:       pixi run -e env-baclife baclife-run
+#   Clean workspace:  pixi run -e env-baclife baclife-clean
+#   Add genomes:      pixi run -e env-baclife baclife-load-genomes
+#   LAG analysis:     pixi run -e env-baclife baclife-lag-analysis
 # ============================================================================
 [feature.baclife.dependencies]
 # Core Engine
-python = ">=3.9"
+python    = ">=3.9"
 snakemake = ">=7.0"
+pulp      = { version = "*", channel = "conda-forge" }  # ILP solver for snakemake
 
-# From bacLIFE_download & environment (Phase I & II)
+# Genome acquisition
 ncbi-datasets-cli = "*"
-entrez-direct = "*"
-bioawk = "*"
-mash = "*"
-blast = "*"
-diamond = ">=2.0"
-mmseqs2 = "*"
-mcl = "*"
-hmmer = "==3.1b2"
-prokka = "==1.14.6"
+entrez-direct     = "*"
+
+# Sequence processing
+bioawk   = "*"
+mash     = "*"
+blast    = "*"
+diamond  = ">=2.0"
+mmseqs2  = "*"
+mcl      = "*"
+
+# Annotation
+hmmer     = "==3.1b2"
+prokka    = "==1.14.6"
 phylophlan = "*"
 eggnog-mapper = "*"
 
-# R-Stack: Quoting keys to neutralize the "Table" error
-r-base = ">=4.0"
-r-tidyverse = "*"
-"r-data.table" = "*"       # <--- Enforce quotes here
-"r-splitstackshape" = "*"  # <--- and here
-r-upsetr = "*"
-r-randomforest = "*"
-r-pheatmap = "*"
-
-# From antiSMASH & BigScape (Phase III)
-antismash = "==8.0.4"
-fasttree = "*"
-# Note: biopython and scikit-learn will be resolved to the highest compatible version
-biopython = "*"
+# Secondary metabolites
+antismash    = "==8.0.4"
+fasttree     = "*"
+biopython    = "*"
 scikit-learn = "*"
+
+# R stack
+r-base           = ">=4.0"
+r-tidyverse      = "*"
+r-readr          = "*"
+r-dplyr          = "*"
+r-randomforest   = "*"
+r-pheatmap       = "*"
+r-upsetr         = "*"
+"r-data.table"   = "*"
+"r-splitstackshape" = "*"
+
+# Python utilities
 openpyxl = "*"
 
-# --- PHASE 0: HELP ---
+# ── PHASE 0: HELP ─────────────────────────────────────────────────────────────
 [feature.baclife.tasks.baclife-help]
+description = "Displays the bacLIFE workflow roadmap and all available commands"
 cmd = """
   echo "
 ================================================================
-   bacLIFE SOVEREIGN LIFECYCLE: THE PATH TO DISCOVERY
+   bacLIFE WORKFLOW: LIFECYCLE ANALYSIS PIPELINE
 ================================================================
-PHASE I: INFRASTRUCTURE (Run Once)
-  1. setup-full        - Solidifies tools & antiSMASH/eggNOG DBs
-  2. dram-config       - Enforces the 444GB DRAM database link
+SETUP (run once per machine):
+  baclife-install       Clone bacLIFE repository
+  baclife-db-init       Download antiSMASH + bacLIFE databases
+  baclife-eggnog-fix    Fix eggNOG mirror URL + download DB
+  baclife-verify        Verify Snakefile is present
 
-PHASE II: DATA INTEGRITY (Per Project)
-  3. link-assets       - Bridges Vault data to this workspace
-  4. audit-quarantine  - Shatters bad MAGs via CheckM2 (90/5)
-  5. busco-genus       - Optional: Deep lineage-specific audit
+DATA PREPARATION (run per project):
+  baclife-load-genomes  Link genomes from vault to data/ (4-part names)
+  baclife-update-names  Add new genomes to names_equivalence.txt
 
-PHASE III: EXECUTION (The Science)
-  6. run               - Propels the Snakemake engine
+EXECUTION:
+  baclife-run           Run snakemake (resume from last checkpoint)
+  baclife-run-fresh     Clean + load genomes + run (full fresh pipeline)
+  baclife-forcerun      Force rerun clustering + phylophlan + run
+
+ANALYSIS:
+  baclife-lag-analysis  Run LAG extraction R script (v5)
+  baclife-lag-summary   Run LAG summary + Rnf analysis R script
+
+MAINTENANCE:
+  baclife-clean         Remove old intermediates (preserves mapping_file.txt)
+  baclife-status        Show current run status and output file sizes
 ================================================================
-Target: Lively Discussion of unknown taxa. Avoid Stagnation.
+NOTES:
+  - mapping_file.txt: edit manually to set lifestyle labels
+  - mapping_file_baclife_generated.txt: auto-generated, do not edit
+  - names_equivalence.txt: maps 4-part bacLIFE names to 2-part display names
+  - Snakefile auto-cleans clustering/ and phylophlan/ before running
+================================================================
 "
 """
-description = "Displays the sovereign roadmap"
 
-# --- PHASE I: INFRASTRUCTURE ---
+# ── PHASE I: INFRASTRUCTURE ───────────────────────────────────────────────────
 [feature.baclife.tasks.baclife-install]
-cmd = "bash -c \"if [ ! -d 'bacLIFE' ]; then git clone https://github.com/Carrion-lab/bacLIFE.git; fi && echo 'SUCCESS: bacLIFE repository solidified.'\""
-description = "Clones the bacLIFE workflow repository"
+description = "Clones the bacLIFE repository (skips if already present)"
+cmd = """
+  bash -c '
+  if [ ! -d "bacLIFE" ]; then
+    git clone https://github.com/Carrion-lab/bacLIFE.git &&
+    echo "SUCCESS: bacLIFE cloned."
+  else
+    echo "NOTICE: bacLIFE directory already exists — skipping clone."
+    echo "To update: cd bacLIFE && git pull"
+  fi'
+"""
 
 [feature.baclife.tasks.baclife-db-init]
+description = "Downloads antiSMASH databases and bacLIFE internal dependencies"
 cmd = """
-  bash -c 'if [ -z "$EXTERNAL_VAULT" ]; then 
-    echo "CONFLICT: EXTERNAL_VAULT is not set. SSD stagnation imminent!"; 
-    exit 1; 
-  fi && 
-  # Clean Pathing (No /databases/databases/)
-  mkdir -p "$EXTERNAL_VAULT/antismash" "$EXTERNAL_VAULT/eggnog" && 
-  
-  echo "Invoking antiSMASH database download..." && 
-  download-antismash-databases --database-dir "$EXTERNAL_VAULT/antismash" && 
-  
-  echo "Invoking bacLIFE internal dependency downloader (Solves 404 errors)..." && 
-  # Note: This requires you to be in the bacLIFE directory
-  cd bacLIFE && python src/download_dependencies.py && 
-  
-  echo "SUCCESS: Genomic libraries solidified in Vault."'
+  bash -c '
+  if [ -z "$EXTERNAL_VAULT" ]; then
+    echo "ERROR: EXTERNAL_VAULT is not set."; exit 1
+  fi &&
+  mkdir -p "$EXTERNAL_VAULT/antismash" "$EXTERNAL_VAULT/eggnog" &&
+  echo "Downloading antiSMASH databases..." &&
+  download-antismash-databases --database-dir "$EXTERNAL_VAULT/antismash" &&
+  echo "Downloading bacLIFE internal dependencies..." &&
+  cd bacLIFE && python src/download_dependencies.py &&
+  echo "SUCCESS: Databases ready."'
 """
 
 [feature.baclife.tasks.baclife-eggnog-fix]
+description = "Fixes dead eggNOG mirror URL and downloads eggNOG database to vault"
 cmd = """
   bash -c '
-  EGG_SCRIPT=$(which download_eggnog_data.py) && \
-  echo "HOT-PATCHING: $EGG_SCRIPT" && \
-  # Using sed to swap the dead embl.de URL for the functional eggnog5 mirror
-  sed -i "s|eggnogdb.embl.de|eggnog5.embl.de|g" "$EGG_SCRIPT" && \
-  
-  mkdir -p "$EXTERNAL_VAULT/eggnog" && \
-  echo "Invoking Fixed Downloader to Vault..." && \
-  # We use -y (yes), -f (force), and point to the Vault
-  download_eggnog_data.py -y -f --data_dir "$EXTERNAL_VAULT/eggnog" && \
-  
-  echo "Bridging Vault to bacLIFE..." && \
-  mkdir -p bacLIFE/databases/mapper_data && \
-  ln -sfn "$EXTERNAL_VAULT/eggnog/"* bacLIFE/databases/mapper_data/ && \
-  echo "SUCCESS: eggNOG Conflict Resolved."'
+  EGG_SCRIPT=$(which download_eggnog_data.py) &&
+  echo "Patching mirror URL in: $EGG_SCRIPT" &&
+  sed -i "s|eggnogdb.embl.de|eggnog5.embl.de|g" "$EGG_SCRIPT" &&
+  mkdir -p "$EXTERNAL_VAULT/eggnog" &&
+  download_eggnog_data.py -y -f --data_dir "$EXTERNAL_VAULT/eggnog" &&
+  mkdir -p bacLIFE/databases/mapper_data &&
+  ln -sfn "$EXTERNAL_VAULT/eggnog/"* bacLIFE/databases/mapper_data/ &&
+  echo "SUCCESS: eggNOG database ready."'
 """
 
 [feature.baclife.tasks.baclife-verify]
-# Corrected to point to the root Snakefile found by your find command
-cmd = "ls bacLIFE/Snakefile"
-description = "Verifies the internal workflow architecture is present"
-
-# --- PHASE II: DATA ACQUISITION ---
-[feature.baclife.tasks.baclife-link-assets]
-cmd = """
-  mkdir -p bacLIFE/data/input && \
-  ln -sfn $EXTERNAL_VAULT/ncbi_genomes/*.fna bacLIFE/data/input/ && \
-  ln -sfn $EXTERNAL_VAULT/my_mags/*.fna bacLIFE/data/input/ && \
-  echo 'SUCCESS: Vault assets unified in bacLIFE/data/input/.'
-"""
-description = "Enforces a symbolic bridge between the Sovereign Vault and the workspace"
-
-[feature.baclife.tasks.baclife-audit-quarantine]
+description = "Verifies bacLIFE Snakefile and key src scripts are present"
 cmd = """
   bash -c '
-  mkdir -p bacLIFE/data/quarantine &&
-  pixi run -e env-checkm2 checkm2 predict --threads 16 --input bacLIFE/data/input --output_dir bacLIFE/quality_audit &&
-  awk -F"\\t" "NR>1 && ($2 < 90 || $3 > 5) {print $1}" bacLIFE/quality_audit/quality_report.tsv > bacLIFE/blacklisted_list.txt &&
-  while read genome; do
-    if [ -f "bacLIFE/data/input/$genome.fna" ]; then
-      mv "bacLIFE/data/input/$genome.fna" bacLIFE/data/quarantine/ &&
-      echo "QUARANTINED: $genome"
-    fi
-  done < bacLIFE/blacklisted_list.txt &&
-  echo "SUCCESS: Workspace cleansed of low-quality isolates."
+  echo "Checking bacLIFE installation..."
+  ls bacLIFE/Snakefile         && echo "  OK: Snakefile"
+  ls bacLIFE/src/rename_MEGAMATRIX.R && echo "  OK: rename_MEGAMATRIX.R"
+  ls bacLIFE/names_equivalence.txt   && echo "  OK: names_equivalence.txt"
+  ls bacLIFE/mapping_file.txt        && echo "  OK: mapping_file.txt"
+  ls bacLIFE/config.json             && echo "  OK: config.json"
+  echo "Genome count in data/:"
+  ls bacLIFE/data/*.fna 2>/dev/null | wc -l
   '
 """
-description = "Neutralizes contamination by enforcing strict 90/5 thresholds"
 
-[feature.baclife.tasks.baclife-busco-genus]
+# ── PHASE II: DATA PREPARATION ────────────────────────────────────────────────
+[feature.baclife.tasks.baclife-load-genomes]
+description = "Links genomes from vault to bacLIFE/data/ — only 4-part named files (Genus_species_strain_replicon)"
 cmd = """
-  if [ -z "$EXTERNAL_VAULT" ]; then echo 'CONFLICT: Vault not set'; exit 1; fi && \
-  mkdir -p $EXTERNAL_VAULT/databases/busco && \
-  busco -i bacLIFE/data/input -o bacLIFE/busco_audit -m genome \
-  --lineage_dataset enterobacterales_odb10 \
-  --download_path $EXTERNAL_VAULT/databases/busco \
-  --offline
+  bash -c '
+  if [ -z "$EXTERNAL_VAULT" ]; then
+    echo "ERROR: EXTERNAL_VAULT not set"; exit 1
+  fi &&
+  mkdir -p bacLIFE/data/ &&
+  echo "Linking genomes from $EXTERNAL_VAULT/ncbi_genomes/ ..." &&
+  LINKED=0 SKIPPED=0 &&
+  for fna in "$EXTERNAL_VAULT/ncbi_genomes/"*.fna; do
+    [ -f "$fna" ] || continue
+    base=$(basename "$fna" .fna)
+    parts=$(echo "$base" | tr "_" "\n" | wc -l)
+    if [ "$parts" -ge 4 ]; then
+      ln -sfn "$fna" "bacLIFE/data/${base}.fna"
+      LINKED=$((LINKED+1))
+    else
+      SKIPPED=$((SKIPPED+1))
+    fi
+  done &&
+  echo "Linked: $LINKED genomes | Skipped (wrong format): $SKIPPED" &&
+  echo "Verify: ls bacLIFE/data/*.fna | wc -l"
+  '
 """
-description = "Enforces specific genus-level integrity checks"
 
-[feature.baclife.tasks.baclife-dram-config]
+[feature.baclife.tasks.baclife-update-names]
+description = "Checks names_equivalence.txt for any missing genome mappings and reports them"
 cmd = """
-  DRAM-setup.py set_database_paths --default \
-  --description_db $EXTERNAL_VAULT/databases/dram_db/description_db.sqlite \
-  --pfam_db $EXTERNAL_VAULT/databases/dram_db/pfam.mmspro \
-  --kegg_db $EXTERNAL_VAULT/databases/dram_db/kegg.mmslib && \
-  echo 'SUCCESS: DRAM functional engine solidified.'
-"""
-description = "Points the DRAM tool to the sovereign database transfer"
+  bash -c '
+  echo "Checking for unmapped genomes in data/..."
+  python3 - << PYEOF
+import os, re
+neq = set()
+with open("bacLIFE/names_equivalence.txt") as f:
+    next(f)
+    for line in f:
+        neq.add(line.split()[0].strip())
 
-# --- PHASE III: EXECUTION ---
+data_files = [os.path.basename(f).replace(".fna","")
+              for f in os.listdir("bacLIFE/data/")
+              if f.endswith(".fna")]
+
+missing = [g for g in data_files if g not in neq]
+if missing:
+    print(f"Missing from names_equivalence.txt ({len(missing)} genomes):")
+    for g in sorted(missing):
+        genus_species = "_".join(g.split("_")[:2])
+        print(f"  {g}\t{genus_species}")
+    print("Add these to bacLIFE/names_equivalence.txt (format: bacLIFE_name<tab>display_name)")
+else:
+    print(f"All {len(data_files)} genomes are mapped in names_equivalence.txt")
+PYEOF
+  '
+"""
+
+# ── PHASE III: EXECUTION ──────────────────────────────────────────────────────
 [feature.baclife.tasks.baclife-run]
-# Corrected the -s (snakefile) path to the root
-cmd = "cd bacLIFE && snakemake --cores 16 -s Snakefile --configfile config.json"
-description = "Invokes the Snakemake engine on the root Snakefile"
+description = "Runs bacLIFE snakemake pipeline (resumes from checkpoint)"
+cmd = """
+  cd bacLIFE &&
+  pixi run -e env-baclife snakemake \
+    --cores 16 \
+    -s Snakefile \
+    2>&1 | tee logs/baclife_$(date +%Y%m%d_%H%M).log
+"""
 
-# --- MASTER COMMANDS ---
+[feature.baclife.tasks.baclife-run-fresh]
+description = "Full fresh pipeline: clean workspace → load genomes → run bacLIFE"
+cmd = """
+  bash -c '
+  echo "=== Step 1: Cleaning workspace ===" &&
+  pixi run -e env-baclife baclife-clean &&
+  echo "=== Step 2: Loading genomes ===" &&
+  pixi run -e env-baclife baclife-load-genomes &&
+  echo "=== Step 3: Running pipeline ===" &&
+  pixi run -e env-baclife baclife-run &&
+  echo "=== Fresh run complete ==="
+  '
+"""
+
+[feature.baclife.tasks.baclife-forcerun]
+description = "Force reruns clustering and phylophlan rules then continues pipeline"
+cmd = """
+  cd bacLIFE &&
+  pixi run -e env-baclife snakemake \
+    --cores 16 \
+    -s Snakefile \
+    --forcerun clustering phylophlan \
+    2>&1 | tee logs/baclife_forcerun_$(date +%Y%m%d_%H%M).log
+"""
+
+# ── PHASE IV: ANALYSIS ────────────────────────────────────────────────────────
+[feature.baclife.tasks.baclife-lag-analysis]
+description = "Runs LAG extraction v5 (reads MEGAMATRIX.txt directly with 4-part names)"
+cmd = """
+  cd bacLIFE &&
+  pixi run -e env-baclife Rscript extract_TH_LAGs_v5.R \
+    2>&1 | tee logs/LAG_analysis_$(date +%Y%m%d_%H%M).log
+"""
+
+[feature.baclife.tasks.baclife-lag-summary]
+description = "Runs LAG summary and Rnf analysis (generates publication-ready tables)"
+cmd = """
+  cd bacLIFE &&
+  pixi run -e env-baclife Rscript TH_LAG_summary_v5.R \
+    2>&1 | tee logs/LAG_summary_$(date +%Y%m%d_%H%M).log
+"""
+
+# ── MAINTENANCE ───────────────────────────────────────────────────────────────
+[feature.baclife.tasks.baclife-clean]
+description = "Removes old intermediate files and genome symlinks — preserves mapping_file.txt and R scripts"
+cmd = """
+  bash -c '
+  echo "=== bacLIFE Workspace Clean ===" &&
+  echo "Removing genome symlinks from data/..." &&
+  find bacLIFE/data/ -maxdepth 1 -name "*.fna" -delete 2>/dev/null; true &&
+  echo "Removing intermediate files..." &&
+  rm -rf bacLIFE/intermediate_files/ &&
+  echo "Removing MEGAMATRIX outputs..." &&
+  rm -f bacLIFE/MEGAMATRIX.txt bacLIFE/MEGAMATRIX_renamed.txt &&
+  rm -f bacLIFE/mapping_file_baclife_generated.txt &&
+  echo "Removing snakemake lock..." &&
+  rm -f bacLIFE/.snakemake/locks/* 2>/dev/null; true &&
+  echo "" &&
+  echo "PRESERVED:" &&
+  echo "  bacLIFE/mapping_file.txt        (lifestyle labels)" &&
+  echo "  bacLIFE/names_equivalence.txt   (name mappings)" &&
+  echo "  bacLIFE/extract_TH_LAGs_v5.R   (LAG analysis script)" &&
+  echo "  bacLIFE/TH_LAG_summary_v5.R    (summary script)" &&
+  echo "  bacLIFE/src/                   (pipeline scripts)" &&
+  echo "" &&
+  echo "SUCCESS: Workspace clean. Ready for fresh run."
+  '
+"""
+
+[feature.baclife.tasks.baclife-status]
+description = "Shows current pipeline status — output file sizes and last-modified times"
+cmd = """
+  bash -c '
+  echo "=== bacLIFE Pipeline Status ==="
+  echo ""
+  echo "Genomes in data/:"
+  ls bacLIFE/data/*.fna 2>/dev/null | wc -l
+  echo ""
+  echo "Key output files:"
+  for f in \
+    bacLIFE/MEGAMATRIX.txt \
+    bacLIFE/MEGAMATRIX_renamed.txt \
+    bacLIFE/mapping_file.txt \
+    bacLIFE/mapping_file_baclife_generated.txt \
+    bacLIFE/intermediate_files/clustering/binary_matrix.txt \
+    bacLIFE/intermediate_files/phylophlan/output_phylophlan/RAxML_bestTree.input_refined.tre \
+    bacLIFE/intermediate_files/eggnog_annotation/eggnog_annotation.emapper.annotations \
+    bacLIFE/intermediate_files/BiG-SCAPE/big_scape_binary_table.txt; do
+    if [ -f "$f" ]; then
+      printf "  OK   %s (%s, %s)\n" "$f" "$(du -sh $f | cut -f1)" "$(date -r $f +%Y-%m-%d)"
+    else
+      printf "  MISS %s\n" "$f"
+    fi
+  done
+  echo ""
+  echo "Last snakemake log:"
+  ls -t bacLIFE/logs/*.log 2>/dev/null | head -1
+  '
+"""
+
+# ── LEGACY (kept for compatibility) ───────────────────────────────────────────
+[feature.baclife.tasks.baclife-link-assets]
+description = "LEGACY: Use baclife-load-genomes instead. Links vault genomes to data/input/"
+cmd = """
+  mkdir -p bacLIFE/data/input &&
+  ln -sfn $EXTERNAL_VAULT/ncbi_genomes/*.fna bacLIFE/data/input/ &&
+  echo 'NOTE: baclife-load-genomes is preferred (links to data/ with 4-part name check)'
+"""
+
 [feature.baclife.tasks.baclife-setup-full]
-depends-on = ["baclife-install", "baclife-db-init", "baclife-verify"]
-cmd = "pixi run -e env-baclife baclife-help"
-description = "Invokes total setup and displays the roadmap"
+description = "MASTER: Runs full installation and setup sequence"
+cmd = """
+  bash -c '
+  pixi run -e env-baclife baclife-install &&
+  pixi run -e env-baclife baclife-db-init &&
+  pixi run -e env-baclife baclife-eggnog-fix &&
+  pixi run -e env-baclife baclife-verify &&
+  pixi run -e env-baclife baclife-help
+  '
+"""
 
 [feature.antismash-stack.dependencies]
 python = "3.11.*"  # Upgrade from 3.9 to 3.11

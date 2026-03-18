@@ -75,15 +75,22 @@ build/
 *.Rout
 
 # BACLIFE WORKING FILES
-bacLIFE/
+# bacLIFE directory - ignore data/results but track key scripts
+bacLIFE/data/
+bacLIFE/intermediate_files/
+bacLIFE/log/
+bacLIFE/.snakemake/
+bacLIFE/databases/
+bacLIFE/pseudomonas_test_data/
+bacLIFE/emappertmp*/
+bacLIFE/ENVS/
+bacLIFE/DOCKER/
+bacLIFE/*.zip
+bacLIFE/*.csv
+bacLIFE/*.txt
+bacLIFE/*.tsv
+bacLIFE/*.R
 baclife_setup_data.sh
-bacLIFE/data/input/
-bacLIFE/data/quarantine/
-bacLIFE/quality_audit/
-bacLIFE/busco_audit/
-bacLIFE/results/
-bacLIFE/logs/
-bacLIFE/blacklisted_list.txt
 downloaded.txt
 requested.txt
 
@@ -158,5 +165,3 @@ Thumbs.db
 *.temp
 *.bak
 
-# Allow bacLIFE Snakefile to be tracked
-!bacLIFE/Snakefile
