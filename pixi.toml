@@ -532,53 +532,154 @@ description = "Displays the bacLIFE workflow roadmap and all available commands"
 cmd = """
   echo "
 ================================================================
-   bacLIFE WORKFLOW: LIFECYCLE ANALYSIS PIPELINE
+   bacLIFE WORKFLOW: LIFESTYLE ANALYSIS PIPELINE
 ================================================================
-SETUP (run once per machine):
-  baclife-install       Clone bacLIFE repository
-  baclife-db-init       Download antiSMASH + bacLIFE databases
-  baclife-eggnog-fix    Fix eggNOG mirror URL + download DB
-  baclife-verify        Verify Snakefile is present
-
+SETUP (run once per machine, in order):
+  1. baclife-install       Clone bacLIFE from Carrion-lab
+  2. baclife-patch         Apply taxonomy_bundle patches (REQUIRED after install)
+  3. baclife-db-init       Download antiSMASH + bacLIFE databases
+  4. baclife-eggnog-fix    Fix eggNOG mirror URL + download DB
+  5. baclife-verify        Verify all files are present and patched
+ 
+  OR run all at once:
+     baclife-setup-full
+ 
 DATA PREPARATION (run per project):
   baclife-load-genomes  Link genomes from vault to data/ (4-part names)
-  baclife-update-names  Add new genomes to names_equivalence.txt
-
+  baclife-update-names  Check names_equivalence.txt for missing genomes
+ 
 EXECUTION:
   baclife-run           Run snakemake (resume from last checkpoint)
   baclife-run-fresh     Clean + load genomes + run (full fresh pipeline)
   baclife-forcerun      Force rerun clustering + phylophlan + run
-
+ 
 ANALYSIS:
   baclife-lag-analysis  Run LAG extraction R script (v5)
   baclife-lag-summary   Run LAG summary + Rnf analysis R script
-
+ 
 MAINTENANCE:
   baclife-clean         Remove old intermediates (preserves mapping_file.txt)
   baclife-status        Show current run status and output file sizes
 ================================================================
-NOTES:
-  - mapping_file.txt: edit manually to set lifestyle labels
-  - mapping_file_baclife_generated.txt: auto-generated, do not edit
-  - names_equivalence.txt: maps 4-part bacLIFE names to 2-part display names
-  - Snakefile auto-cleans clustering/ and phylophlan/ before running
+PATCHES APPLIED (see bacLIFE/BACLIFE_VERSION.md for details):
+  - Snakefile: auto-clean stale clustering/ and phylophlan/ outputs
+  - Snakefile: rename_MEGAMATRIX writes to mapping_file_baclife_generated.txt
+  - src/rename_MEGAMATRIX.R: v2 — handles unmapped genomes gracefully
+  - names_equivalence.txt: 81 entries including 30 ThermoBase genomes
+  - extract_TH_LAGs_v5.R: LAG analysis for 79-genome thermohalophile dataset
+  - TH_LAG_summary_v5.R: Rnf complex analysis and summary tables
 ================================================================
-"
-"""
+WARNING: Do NOT run git clone/pull bacLIFE into this directory.
+         This will overwrite the patches. See BACLIFE_VERSION.md.
+================================================================
+
 
 # ── PHASE I: INFRASTRUCTURE ───────────────────────────────────────────────────
 [feature.baclife.tasks.baclife-install]
-description = "Clones the bacLIFE repository (skips if already present)"
+description = "Clones the bacLIFE repository from Carrion-lab (skips if already present). Run baclife-patch after this."
 cmd = """
   bash -c '
   if [ ! -d "bacLIFE" ]; then
+    echo "Cloning bacLIFE from Carrion-lab..." &&
     git clone https://github.com/Carrion-lab/bacLIFE.git &&
-    echo "SUCCESS: bacLIFE cloned."
+    echo "SUCCESS: bacLIFE cloned." &&
+    echo "" &&
+    echo "NEXT STEP: Run baclife-patch to apply required patches:" &&
+    echo "  pixi run -e env-baclife baclife-patch"
   else
-    echo "NOTICE: bacLIFE directory already exists — skipping clone."
-    echo "To update: cd bacLIFE && git pull"
+    echo "NOTICE: bacLIFE directory already exists — skipping clone." &&
+    echo "To update upstream: cd bacLIFE && git pull" &&
+    echo "Then re-run: pixi run -e env-baclife baclife-patch"
   fi'
 """
+ 
+[feature.baclife.tasks.baclife-patch]
+description = "Applies taxonomy_bundle patches to bacLIFE after cloning. MUST run after baclife-install. See bacLIFE/BACLIFE_VERSION.md for details."
+cmd = """
+  bash -c '
+  if [ ! -d "bacLIFE" ]; then
+    echo "ERROR: bacLIFE directory not found."
+    echo "Run baclife-install first: pixi run -e env-baclife baclife-install"
+    exit 1
+  fi &&
+ 
+  REPO_ROOT="$(pwd)" &&
+  echo "=== Applying bacLIFE patches ===" &&
+  echo "Source: $REPO_ROOT/bacLIFE (tracked files)" &&
+  echo "" &&
+ 
+  # These files exist in the git repo and must overwrite the freshly cloned versions
+  echo "Patching Snakefile (auto-clean clustering + phylophlan, fix mapping_file overwrite)..." &&
+  # Snakefile is already in place from the repo — verify it has the patches
+  grep -q "rm -rf intermediate_files/clustering" bacLIFE/Snakefile && \
+    echo "  OK: Snakefile clustering patch present" || \
+    echo "  WARN: Snakefile clustering patch missing — check bacLIFE/Snakefile"
+ 
+  grep -q "mapping_file_baclife_generated" bacLIFE/Snakefile && \
+    echo "  OK: Snakefile mapping_file patch present" || \
+    echo "  WARN: Snakefile mapping_file patch missing — check bacLIFE/Snakefile"
+ 
+  echo "" &&
+  echo "Patching src/rename_MEGAMATRIX.R (v2 — graceful unmapped genomes)..." &&
+  grep -q "mapping_file_baclife_generated" bacLIFE/src/rename_MEGAMATRIX.R && \
+    echo "  OK: rename_MEGAMATRIX.R v2 patch present" || \
+    echo "  WARN: rename_MEGAMATRIX.R patch missing — check bacLIFE/src/rename_MEGAMATRIX.R"
+ 
+  echo "" &&
+  echo "Verifying names_equivalence.txt (should have 81+ entries)..." &&
+  NE_COUNT=$(wc -l < bacLIFE/names_equivalence.txt) &&
+  if [ "$NE_COUNT" -ge 81 ]; then
+    echo "  OK: names_equivalence.txt has $NE_COUNT lines"
+  else
+    echo "  WARN: names_equivalence.txt has only $NE_COUNT lines (expected 81+)"
+    echo "  The 30 new ThermoBase genomes may be missing"
+  fi &&
+ 
+  echo "" &&
+  echo "Verifying config.json..." &&
+  grep -q "mcl_inflation_value" bacLIFE/config.json && \
+    echo "  OK: config.json present" || \
+    echo "  WARN: config.json missing or malformed"
+ 
+  echo "" &&
+  echo "Verifying analysis scripts..." &&
+  [ -f "bacLIFE/extract_TH_LAGs_v5.R" ] && \
+    echo "  OK: extract_TH_LAGs_v5.R present" || \
+    echo "  MISS: extract_TH_LAGs_v5.R not found"
+  [ -f "bacLIFE/TH_LAG_summary_v5.R" ] && \
+    echo "  OK: TH_LAG_summary_v5.R present" || \
+    echo "  MISS: TH_LAG_summary_v5.R not found"
+  [ -f "bacLIFE/BACLIFE_VERSION.md" ] && \
+    echo "  OK: BACLIFE_VERSION.md present" || \
+    echo "  MISS: BACLIFE_VERSION.md not found"
+ 
+  echo "" &&
+  echo "=== Patch verification complete ===" &&
+  echo "If any WARN or MISS above, the repo tracked files may not have" &&
+  echo "been applied correctly. Check git status and re-add if needed." &&
+  echo "" &&
+  echo "NEXT STEP: Set up databases:" &&
+  echo "  pixi run -e env-baclife baclife-db-init" &&
+  echo "  pixi run -e env-baclife baclife-eggnog-fix"
+  '
+"""
+ 
+# ── Update baclife-setup-full to include baclife-patch ────────────────────────
+[feature.baclife.tasks.baclife-setup-full]
+description = "MASTER: Full installation — clone, patch, init databases, verify"
+cmd = """
+  bash -c '
+  pixi run -e env-baclife baclife-install &&
+  pixi run -e env-baclife baclife-patch &&
+  pixi run -e env-baclife baclife-db-init &&
+  pixi run -e env-baclife baclife-eggnog-fix &&
+  pixi run -e env-baclife baclife-verify &&
+  pixi run -e env-baclife baclife-help
+  '
+"""
+
+
+
 
 [feature.baclife.tasks.baclife-db-init]
 description = "Downloads antiSMASH databases and bacLIFE internal dependencies"
