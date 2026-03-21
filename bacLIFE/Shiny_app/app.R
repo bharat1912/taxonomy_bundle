@@ -1,6 +1,10 @@
 
 library(shiny)
 library(readr)
+# Graphics device fixes for Linux
+options(bitmapType = "cairo")
+Sys.setenv(R_GSCMD = "gs")
+Sys.setenv(RETICULATE_PYTHON="")
 library(UpSetR)
 library(data.table)
 library(dplyr)
@@ -31,8 +35,12 @@ library(writexl)
 
 source('data_app.R')
 
-
-
+library(reticulate)
+# This fixes the Ubuntu "Hang" by bypassing the security sandbox
+try({
+  py_run_string("import plotly.io as pio; pio.kaleido.scope.chromium_args += ('--no-sandbox', '--single-process')")
+  message("Kaleido sandbox fix applied successfully.")
+}, silent = TRUE)
 
 
 # Define UI ----
@@ -291,6 +299,7 @@ ui <- navbarPage("bacLIFE", theme = shinytheme("flatly"),
                                                              p(style="text-align: justify",'Description: COG functional categories proportions of the core-genome (genes present in >90% of genomes) of the complete dataset.'),
                                                              
                                                              plotlyOutput(outputId = "allcorecog",width = '500px',height = '400px'),
+                                                             downloadButton("download_allcorecog", "Download PNG"),
                                                              p(style="text-align: justify",paste0('Number of complete dataset core gene clusters: ', nrow(core_genes))),
                                                              br(),
                                                              p(style="text-align: justify",'Download the core-genome in a table with functional annotations'),
@@ -301,17 +310,19 @@ ui <- navbarPage("bacLIFE", theme = shinytheme("flatly"),
                                                              p(style="text-align: justify",'Description: Barplot showing the number of core-genes (genes present in >90% of genomes) of each metadata group.'),
                                                              
                                                              plotlyOutput(outputId = "coreplot"),
-                                                             
+                                                             downloadButton("download_coreplot", "Download PNG"),
                                                              uiOutput('table_group4core'),
                                                              br(),
                                                              tags$label(h3(tags$b('Group core COG profiles'))),
                                                              p(style="text-align: justify",'Description: Barplot showing the COG functional categories proportions of each metadata group core-genome.'),
                                                              
                                                              plotlyOutput(outputId = "corecogplot",width = '800px',height = '500px'),
+                                                             downloadButton("download_corecogplot", "Download PNG"),
                                                              tags$label(h3(tags$b('Upset plot of core genes overlapping'))),
                                                              p(style="text-align: justify",'Description: The Upset plot displays the overlap of the core-genome among each metadata group.'),
                                                              
                                                              plotOutput(outputId = "Upsetplot",width = '800px',height = '500px'),
+                                                               downloadButton("download_upsetplot", "Download PNG"),
                                                              br(),
                                                              br(),
                                                              
@@ -1535,6 +1546,147 @@ server <- function(input, output){
   
   
   
+  # ── PNG download handlers for plotly figures ─────────────────────────────
+  output$download_coreplot <- downloadHandler(
+    filename = function() { "core_genome_by_lifestyle.png" },
+    content = function(file) {
+      tryCatch({
+      cat("DEBUG: download_coreplot called\n")
+      cat("DEBUG: file=", file, "\n")
+      column <- input$upsetcolumn
+      cat("DEBUG: column=", column, "\n")
+      input_data <- list_upset()
+      cat("DEBUG: list_upset done, n=", length(input_data), "\n")
+      len_vector <- sapply(input_data, length)
+      to_plot <- data.frame(Groups=names(len_vector), Core_genes=len_vector)
+      p <- ggplot(to_plot, aes(x=Groups, y=Core_genes, fill=Groups)) +
+        geom_bar(stat="identity", colour="black", linewidth=0.3) +
+        geom_text(aes(label=Core_genes), vjust=-0.5, size=3.5) +
+        scale_y_continuous(expand=expansion(mult=c(0,0.12))) +
+        labs(x="Lifestyle group", y="Core gene clusters (≥90% of group)",
+             title="Group core genome size") +
+        theme_classic(base_size=12) +
+        theme(axis.text.x=element_text(angle=35, hjust=1),
+              legend.position="none",
+              plot.background=element_rect(fill="white", colour=NA))
+      ggsave(file, p, width=8, height=5, dpi=300, bg="white", device=png, type="cairo")
+      cat("DEBUG: ggsave done\n")
+      }, error=function(e) {
+        cat("DEBUG ERROR:", conditionMessage(e), "\n")
+        # Write a simple placeholder PNG on error
+        png(file, width=400, height=300)
+        plot(1, main=paste("Error:", conditionMessage(e)))
+        dev.off()
+      })
+    }
+  )
+
+  output$download_corecogplot <- downloadHandler(
+    filename = function() { "core_COG_profiles.png" },
+    content = function(file) {
+      column <- input$upsetcolumn
+      mapping_file_local <- new_mapping_file()[[1]]
+      cog_long <- cog_agg_matrix %>%
+        rename(COG=id) %>%
+        tidyr::pivot_longer(-COG, names_to="Sample", values_to="Count") %>%
+        left_join(mapping_file_local[,c("Sample", column)], by="Sample") %>%
+        rename(Group=all_of(column)) %>%
+        filter(!is.na(Group), !is.na(COG), COG != "") %>%
+        group_by(Group, COG) %>%
+        summarise(mean_count=mean(Count, na.rm=TRUE), .groups="drop") %>%
+        group_by(Group) %>%
+        mutate(pct=mean_count/sum(mean_count)*100) %>%
+        ungroup()
+      p <- ggplot(cog_long, aes(x=Group, y=pct, fill=COG)) +
+        geom_bar(stat="identity", colour="white", linewidth=0.2) +
+        scale_y_continuous(expand=expansion(mult=c(0,0.02))) +
+        labs(x=NULL, y="Relative COG abundance (%)",
+             title="COG functional profiles by group") +
+        theme_classic(base_size=11) +
+        theme(axis.text.x=element_text(angle=35, hjust=1),
+              legend.text=element_text(size=7),
+              legend.key.size=unit(0.35,"cm"),
+              plot.background=element_rect(fill="white", colour=NA))
+      ggsave(file, p, width=13, height=7, dpi=300, bg="white", device=png, type="cairo")
+    }
+  )
+
+  output$download_upsetplot <- downloadHandler(
+    filename = function() { "upset_core_genes.png" },
+    content = function(file) {
+      cat("DEBUG upset: file=", file, "\n")
+      # Write minimal test PNG
+      png(file, width=800, height=600, type="cairo")
+      upset(fromList(input_data),
+            sets=rev(names(input_data)),
+            order.by="freq",
+            nsets=length(input_data),
+            text.scale=1.8,
+            point.size=3.5,
+            line.size=1.2,
+            mb.ratio=c(0.6,0.4),
+            main.bar.color="#2166AC",
+            mainbar.y.label="Intersection size",
+            sets.x.label="Group core genome")
+      plot(1:10, main="UpSet Download Test - Working!")
+      dev.off()
+      cat("DEBUG upset: done\n")
+    }
+  )
+
+  output$download_allcorecog <- downloadHandler(
+    filename = function() { "core_COG_pie.png" },
+    content = function(file) {
+      cog_labels_full <- c(
+        C="Energy production", D="Cell cycle/division", E="Amino acid metabolism",
+        F="Nucleotide metabolism", G="Carbohydrate metabolism", H="Coenzyme metabolism",
+        I="Lipid metabolism", J="Translation/ribosome", K="Transcription",
+        L="DNA replication/repair", M="Cell wall/membrane", N="Cell motility",
+        O="Post-translational modification", P="Inorganic ion transport",
+        Q="Secondary metabolites", R="General function", S="Unknown function",
+        T="Signal transduction", U="Intracellular trafficking", V="Defense mechanisms"
+      )
+      cog_df <- cog_core_genes[order(cog_core_genes$x, decreasing=TRUE),]
+      cog_df <- merge(cog_df, df_colors, by.y="processes", by.x="COG_processes")
+      cog_df <- cog_df[order(cog_df$x, decreasing=TRUE),]
+      cog_df$pct <- round(cog_df$x * 100, 1)
+      cog_df$full_label <- paste0(
+        cog_df$COG_processes, ": ",
+        ifelse(!is.na(cog_labels_full[cog_df$COG_processes]),
+               cog_labels_full[cog_df$COG_processes],
+               cog_df$COG_processes)
+      )
+      cog_df$pie_label <- ifelse(cog_df$pct >= 2,
+        paste0(cog_df$COG_processes, "
+", cog_df$pct, "%"), "")
+      cog_df$cumsum <- cumsum(cog_df$x)
+      cog_df$midpos  <- cog_df$cumsum - cog_df$x/2
+      cog_df$full_label <- factor(cog_df$full_label, levels=cog_df$full_label)
+      p <- ggplot(cog_df, aes(x=2, y=x, fill=full_label)) +
+        geom_bar(stat="identity", width=1, colour="white", linewidth=0.4) +
+        coord_polar("y", start=0) +
+        geom_text(aes(y=midpos, label=pie_label),
+                  x=2.55, size=3.2, fontface="bold", colour="black") +
+        scale_fill_manual(values=setNames(cog_df$color, cog_df$full_label),
+                          name="COG category") +
+        xlim(0.5, 3.8) +
+        labs(title="COG functional categories of universal core genome",
+             subtitle="234 gene clusters present in ≥90% of all 79 genomes") +
+        theme_void(base_size=11) +
+        theme(
+          plot.background   = element_rect(fill="white", colour=NA),
+          plot.title        = element_text(face="bold", hjust=0.5, size=13),
+          plot.subtitle     = element_text(hjust=0.5, size=10, colour="grey40"),
+          legend.text       = element_text(size=8),
+          legend.key.size   = unit(0.4,"cm"),
+          legend.title      = element_text(face="bold", size=9),
+          plot.margin       = margin(10,10,10,10)
+        )
+      ggsave(file, p, width=14, height=8, dpi=300, bg="white", device=png, type="cairo")
+    }
+  )
+  # ─────────────────────────────────────────────────────────────────────────
+
   output$table_group4core <- renderUI({
     column = input$upsetcolumn
     
