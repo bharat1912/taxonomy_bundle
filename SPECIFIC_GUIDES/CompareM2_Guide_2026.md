@@ -95,7 +95,7 @@ When CompareM2 finds a flag file it skips the download for that tool. This allow
 | AntiSMASH | `/media/bharat/volume1/databases/antismash/` | ~2GB |
 | GTDB-Tk | `/media/bharat/volume1/databases/gtdb_226/` | ~66GB |
 | AMRFinder | `/media/bharat/volume1/databases/bakta/amrfinderplus-db/` | ~1GB |
-| DBCan | see Section 3 | ~5GB |
+| DBCan | see Section 3 | ~11GB |
 
 ### Create symlinks and flag files
 
@@ -262,17 +262,18 @@ CompareM2 uses a YAML config file to pass database paths and parameters. This av
 annotator: "bakta"
 
 # Default output directory (override per run with --config output_directory=...)
+# IMPORTANT: Do NOT add a trailing slash — Snakemake will create double // in paths
 output_directory: "results_comparem2"
 
 # Database paths — point to vault to avoid re-downloading
-# Bakta (~90GB full database)
-set_bakta--db: "/media/bharat/volume1/databases/bakta"
+# NOTE: Bakta DB path is NOT set here. CompareM2 finds bakta via the
+# flag file symlink at comparem2_db/cm2_v2.16/bakta/db (set up in Section 2).
+# Setting set_bakta--db here causes --db to be passed twice, causing errors.
 
 # EggNOG (~50GB)
 set_eggnog--data_dir: "/media/bharat/volume1/databases/eggnog"
 
-# CheckM2 (handled by CHECKM2DB env variable in pixi.toml)
-# set_checkm2--database_path: "/media/bharat/volume1/databases/checkm2/CheckM2_database/uniref100.KO.1.dmnd"
+# CheckM2 (handled by CHECKM2DB env variable in pixi.toml — no passthrough needed)
 
 # AMRFinder (inside Bakta directory)
 set_amrfinder--database: "/media/bharat/volume1/databases/bakta/amrfinderplus-db"
@@ -280,7 +281,7 @@ set_amrfinder--database: "/media/bharat/volume1/databases/bakta/amrfinderplus-db
 # AntiSMASH
 set_antismash--databases: "/media/bharat/volume1/databases/antismash"
 
-# DBCan (download from AWS S3 — see Section 3)
+# DBCan — uncomment after download (Section 3)
 # set_dbcan--db_dir: "/media/bharat/volume1/databases/comparem2_db/cm2_v2.16/dbcan"
 ```
 
@@ -329,10 +330,12 @@ pixi run -e env-cm2 comparem2 \
     --configfile config/config_comparem2.yaml \
     --config \
         input_genomes="/media/bharat/volume2/MAGS_2023_Metawrap_final/MAGS_2023/5_BIN_REFINEMENT/metawrap_70_10_bins/*.fa" \
-        output_directory="/media/bharat/volume1/databases/comparem2_GAB_106bins/" \
+        output_directory="/media/bharat/volume1/databases/comparem2_GAB_106bins" \
     --until meta \
     2>&1 | tee ~/software/taxonomy_bundle/comparem2_GAB_run.log
 ```
+
+> ⚠️ **No trailing slash** on `output_directory` — Snakemake adds its own path separator and a trailing slash causes double `//` warnings in all output paths. Use `output_directory="results"` not `output_directory="results/"`.
 
 ### Dry run first (always recommended)
 
@@ -343,7 +346,7 @@ pixi run -e env-cm2 comparem2 \
     --configfile config/config_comparem2.yaml \
     --config \
         input_genomes="/media/bharat/volume2/MAGS_2023_Metawrap_final/MAGS_2023/5_BIN_REFINEMENT/metawrap_70_10_bins/*.fa" \
-        output_directory="/media/bharat/volume1/databases/comparem2_GAB_106bins/" \
+        output_directory="/media/bharat/volume1/databases/comparem2_GAB_106bins" \
     --until meta \
     --dry-run
 ```
@@ -354,25 +357,25 @@ pixi run -e env-cm2 comparem2 \
 # Q.C. only (fast — minutes)
 pixi run -e env-cm2 comparem2 \
     --configfile config/config_comparem2.yaml \
-    --config input_genomes="path/to/genomes/*.fa" output_directory="results/" \
+    --config input_genomes="path/to/genomes/*.fa" output_directory="results" \
     --until checkm2 assembly_stats
 
 # Annotation only
 pixi run -e env-cm2 comparem2 \
     --configfile config/config_comparem2.yaml \
-    --config input_genomes="path/to/genomes/*.fa" output_directory="results/" \
+    --config input_genomes="path/to/genomes/*.fa" output_directory="results" \
     --until bakta
 
 # Phylogenetics only
 pixi run -e env-cm2 comparem2 \
     --configfile config/config_comparem2.yaml \
-    --config input_genomes="path/to/genomes/*.fa" output_directory="results/" \
+    --config input_genomes="path/to/genomes/*.fa" output_directory="results" \
     --until gtdbtk mashtree
 
 # Re-render report only
 pixi run -e env-cm2 comparem2 \
     --configfile config/config_comparem2.yaml \
-    --config input_genomes="path/to/genomes/*.fa" output_directory="results/" \
+    --config input_genomes="path/to/genomes/*.fa" output_directory="results" \
     --until report
 ```
 
@@ -384,7 +387,7 @@ ls /path/to/genomes/*.fa > my_genomes.txt
 
 pixi run -e env-cm2 comparem2 \
     --configfile config/config_comparem2.yaml \
-    --config fofn="my_genomes.txt" output_directory="results/"
+    --config fofn="my_genomes.txt" output_directory="results"
 ```
 
 ### Check run status
@@ -394,7 +397,7 @@ cd ~/software/taxonomy_bundle
 
 pixi run -e env-cm2 comparem2 \
     --configfile config/config_comparem2.yaml \
-    --config input_genomes="path/to/genomes/*.fa" output_directory="results/" \
+    --config input_genomes="path/to/genomes/*.fa" output_directory="results" \
     --status
 ```
 
@@ -432,7 +435,8 @@ All outputs are written to `output_directory/` (default: `results_comparem2/`).
 | `Singularity not found` | Apptainer not installed | Install apptainer in `pixi.toml` |
 | `Snakemake lock` | Previous run crashed | Run `rm -rf results/.snakemake/locks/` |
 | `checkm2 DB not found` | `CHECKM2DB` env var not set | Check `pixi.toml` activation env |
-| `bakta: database not found` | Wrong db path | Check `set_bakta--db` in config YAML |
+| `double // in path` | Trailing slash on `output_directory` | Remove trailing slash from path |
+| `bakta: database not found` | Symlink missing | Check `$CM2_DB/bakta/db` symlink points to vault |
 
 ---
 
