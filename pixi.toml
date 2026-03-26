@@ -1460,3 +1460,26 @@ cmd = "pixi run -e env-a snakemake -s Snakefile_hybrid_taxonomy.smk --cores 32 -
 [tasks.dry-sra-search]
 description = "Dry-run SRA search workflow (no execution)"
 cmd = "pixi run -e env-a snakemake -s Snakefile_SRAsearch.smk --cores 32 --rerun-triggers mtime --configfile config/config_SRAsearch.yaml --dry-run"
+
+[tasks.download-dbcan]
+# Usage: pixi run download-dbcan
+# WARNING: Primary server (bcb.unl.edu) offline due to cyberattack (March 2026)
+# Uses AWS S3 backup instead. ~11GB download.
+cmd = """
+  pixi run setup-vault &&
+  mkdir -p $EXTERNAL_VAULT/comparem2_db/cm2_v2.16/dbcan &&
+  cd $EXTERNAL_VAULT/comparem2_db/cm2_v2.16/dbcan &&
+
+  if [ -f "comparem2_dbcan_database_representative.flag" ]; then
+    echo 'DBCan already installed. Flag file found. Skipping download.'
+  else
+    echo 'Downloading DBCan v5 from AWS S3 backup (~11GB)...' &&
+    pip install awscli --break-system-packages --quiet &&
+    aws s3 cp s3://dbcan/db_v5-2_9-13-2025/ . --recursive --no-sign-request &&
+    echo 'Cleaning up incomplete partial files...' &&
+    find . -name '*.AeaE0D6D' -o -name '*.3c09F80C' -o -name '*.044E1E30' | xargs rm -f &&
+    touch comparem2_dbcan_database_representative.flag &&
+    echo 'DBCan download complete.'
+  fi
+"""
+description = "Download DBCan v5 database from AWS S3 (~11GB) for CompareM2"
