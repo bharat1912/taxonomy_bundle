@@ -162,26 +162,65 @@ DBCan (Carbohydrate-Active enZyme database) is the only database not already pre
 
 > ⚠️ **The bcb.unl.edu server is currently offline** due to a cyberattack. Use the AWS S3 backup instead.
 
-### Download via AWS S3 (recommended)
+### Option A — Automated via pixi task (recommended)
+
+The cleanest approach — runs the full download and creates the flag file automatically:
 
 ```bash
-# Install AWS CLI if not present
 cd ~/software/taxonomy_bundle
-pixi run pip install awscli --break-system-packages
+pixi run download-dbcan
+```
 
-# Create DBCan directory
+### Option B — Manual download via AWS S3
+
+Use this if the pixi task fails or for troubleshooting. Steps are:
+
+**Step 1 — Install AWS CLI:**
+
+```bash
+cd ~/software/taxonomy_bundle
+
+# Install awscli in the default pixi environment
+pixi run pip install awscli --break-system-packages 2>&1 | tail -3
+
+# Verify installation
+pixi run aws --version
+```
+
+**Step 2 — Verify S3 bucket contents:**
+
+```bash
+# List files available in the S3 backup before downloading
+pixi run aws s3 ls s3://dbcan/db_v5-2_9-13-2025/ --no-sign-request | head -20
+```
+
+Expected output includes: `CAZyDB.fa`, `dbCAN.hmm`, `dbCAN_sub.hmm`, `CAZy.dmnd`, `Pfam-A.hmm`, `TCDB.dmnd`, `TF.hmm`, `STP.hmm`, `sulfatlas_db.dmnd`, `peptidase_db.dmnd`, `fam-substrate-mapping.tsv`, `dbCAN-PUL/`
+
+**Step 3 — Download (~11GB):**
+
+```bash
 mkdir -p /media/bharat/volume1/databases/comparem2_db/cm2_v2.16/dbcan
-
-# Download from AWS S3 backup
 cd /media/bharat/volume1/databases/comparem2_db/cm2_v2.16/dbcan
 
 pixi run aws s3 cp s3://dbcan/db_v5-2_9-13-2025/ . \
     --recursive --no-sign-request \
     2>&1 | tee ~/software/taxonomy_bundle/dbcan_s3_download.log
+```
 
-# Create flag file after successful download
+**Step 4 — Clean up incomplete partial files and create flag:**
+
+```bash
+# Remove any incomplete partial download files (identified by random suffix)
+find /media/bharat/volume1/databases/comparem2_db/cm2_v2.16/dbcan \
+    -name '*.[A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9]' \
+    -delete
+
+# Create flag file to signal successful installation
 touch /media/bharat/volume1/databases/comparem2_db/cm2_v2.16/dbcan/comparem2_dbcan_database_representative.flag
 echo "DBCan download complete"
+
+# Verify contents
+ls -lh /media/bharat/volume1/databases/comparem2_db/cm2_v2.16/dbcan/
 ```
 
 ### Download via CompareM2 (when server is restored)
