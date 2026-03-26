@@ -824,7 +824,8 @@ GTDBTK_DATA_PATH = "$PIXI_PROJECT_ROOT/db_link/gtdbtk"
 BAKTA_DB         = "$PIXI_PROJECT_ROOT/db_link/bakta"
 BUSCO_LINEAGE_SETS = "$PIXI_PROJECT_ROOT/db_link/busco"
 COMPAREM2_DATABASES  = "$EXTERNAL_VAULT/comparem2_db" 
-COMPAREM2_CONDA_PREFIX = "$EXTERNAL_VAULT/comparem2_conda" 
+COMPAREM2_CONDA_PREFIX = "$EXTERNAL_VAULT/comparem2_conda"
+COMPAREM2_PROFILE    = "$PIXI_PROJECT_ROOT/.pixi/envs/env-cm2/share/comparem2-2.16.2-0/profile/conda/default" 
 
 
 # ============================================================================
@@ -1045,7 +1046,7 @@ run-panaroo = "pixi run -e env-pan panaroo -i results/all_annotations/*.gff -o r
 aliview = "java -Xmx4G -jar $PIXI_PROJECT_ROOT/software/aliview-1.30.jar"
 
 # Usage: pixi run cm2-run -- --input ./my_genomes/*.fna --output ./cm2_results
-cm2-run = { cmd = "pixi run -e env-cm2 comparem2 run $@", description = "Runs CompareM2 genome comparison pipeline" }
+cm2-run = { cmd = "pixi run -e env-cm2 comparem2 --profile $COMPAREM2_PROFILE --configfile config/config_comparem2.yaml $@", description = "Runs CompareM2 genome comparison pipeline" }
 
 # Usage: pixi run cm2-help
 cm2-help = { cmd = "pixi run -e env-cm2 comparem2 --help", description = "Shows CompareM2 usage" }

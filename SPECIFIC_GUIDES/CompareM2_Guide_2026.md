@@ -295,10 +295,13 @@ The following environment variables must be set in `pixi.toml` for the `comparem
 [feature.comparem2-stack.activation.env]
 COMPAREM2_DATABASES    = "$EXTERNAL_VAULT/comparem2_db"
 COMPAREM2_CONDA_PREFIX = "$EXTERNAL_VAULT/comparem2_conda"
+COMPAREM2_PROFILE      = "$PIXI_PROJECT_ROOT/.pixi/envs/env-cm2/share/comparem2-2.16.2-0/profile/conda/default"
 CHECKM2DB              = "$PIXI_PROJECT_ROOT/db_link/checkm2"
 GTDBTK_DATA_PATH       = "$PIXI_PROJECT_ROOT/db_link/gtdbtk"
 BAKTA_DB               = "$PIXI_PROJECT_ROOT/db_link/bakta"
 ```
+
+> **Important:** `COMPAREM2_PROFILE` points to the **conda profile** (not apptainer). CompareM2 defaults to the apptainer profile which requires Singularity + conda working together inside a container. On our system the pure conda profile is more reliable. The conda profile uses `mamba` to create tool-specific environments on first run and `use-conda: true` to activate them per rule.
 
 > ⚠️ **GitHub note:** After editing `pixi.toml`, commit and push:
 > ```bash
@@ -327,6 +330,7 @@ BAKTA_DB               = "$PIXI_PROJECT_ROOT/db_link/bakta"
 cd ~/software/taxonomy_bundle
 
 pixi run -e env-cm2 comparem2 \
+    --profile $COMPAREM2_PROFILE \
     --configfile config/config_comparem2.yaml \
     --config \
         input_genomes="/media/bharat/volume2/MAGS_2023_Metawrap_final/MAGS_2023/5_BIN_REFINEMENT/metawrap_70_10_bins/*.fa" \
@@ -334,6 +338,8 @@ pixi run -e env-cm2 comparem2 \
     --until meta \
     2>&1 | tee ~/software/taxonomy_bundle/comparem2_GAB_run.log
 ```
+
+> ⚠️ **Always use `--profile $COMPAREM2_PROFILE`** — this selects the conda profile. Without it CompareM2 defaults to the apptainer profile which requires Singularity + conda working together inside a container and causes rule failures on our system.
 
 > ⚠️ **No trailing slash** on `output_directory` — Snakemake adds its own path separator and a trailing slash causes double `//` warnings in all output paths. Use `output_directory="results"` not `output_directory="results/"`.
 
@@ -343,6 +349,7 @@ pixi run -e env-cm2 comparem2 \
 cd ~/software/taxonomy_bundle
 
 pixi run -e env-cm2 comparem2 \
+    --profile $COMPAREM2_PROFILE \
     --configfile config/config_comparem2.yaml \
     --config \
         input_genomes="/media/bharat/volume2/MAGS_2023_Metawrap_final/MAGS_2023/5_BIN_REFINEMENT/metawrap_70_10_bins/*.fa" \
@@ -356,24 +363,28 @@ pixi run -e env-cm2 comparem2 \
 ```bash
 # Q.C. only (fast — minutes)
 pixi run -e env-cm2 comparem2 \
+    --profile $COMPAREM2_PROFILE \
     --configfile config/config_comparem2.yaml \
     --config input_genomes="path/to/genomes/*.fa" output_directory="results" \
     --until checkm2 assembly_stats
 
 # Annotation only
 pixi run -e env-cm2 comparem2 \
+    --profile $COMPAREM2_PROFILE \
     --configfile config/config_comparem2.yaml \
     --config input_genomes="path/to/genomes/*.fa" output_directory="results" \
     --until bakta
 
 # Phylogenetics only
 pixi run -e env-cm2 comparem2 \
+    --profile $COMPAREM2_PROFILE \
     --configfile config/config_comparem2.yaml \
     --config input_genomes="path/to/genomes/*.fa" output_directory="results" \
     --until gtdbtk mashtree
 
 # Re-render report only
 pixi run -e env-cm2 comparem2 \
+    --profile $COMPAREM2_PROFILE \
     --configfile config/config_comparem2.yaml \
     --config input_genomes="path/to/genomes/*.fa" output_directory="results" \
     --until report
@@ -386,6 +397,7 @@ pixi run -e env-cm2 comparem2 \
 ls /path/to/genomes/*.fa > my_genomes.txt
 
 pixi run -e env-cm2 comparem2 \
+    --profile $COMPAREM2_PROFILE \
     --configfile config/config_comparem2.yaml \
     --config fofn="my_genomes.txt" output_directory="results"
 ```
@@ -396,6 +408,7 @@ pixi run -e env-cm2 comparem2 \
 cd ~/software/taxonomy_bundle
 
 pixi run -e env-cm2 comparem2 \
+    --profile $COMPAREM2_PROFILE \
     --configfile config/config_comparem2.yaml \
     --config input_genomes="path/to/genomes/*.fa" output_directory="results" \
     --status
@@ -429,6 +442,7 @@ All outputs are written to `output_directory/` (default: `results_comparem2/`).
 
 | Error | Cause | Fix |
 |-------|-------|-----|
+| `Error in rule sequence_lengths/bakta` | Apptainer profile active, conda envs not activating | Always use `--profile $COMPAREM2_PROFILE` to force conda profile |
 | `Invalid config definition` | Hyphen in `--config` key | Use `--configfile` for hyphenated keys |
 | `Missing flag file` | Database not found | Create symlink + flag file (Section 2) |
 | `SSL certificate error` | bcb.unl.edu offline | Download DBCan from AWS S3 (Section 3) |
@@ -445,7 +459,7 @@ All outputs are written to `output_directory/` (default: `results_comparem2/`).
 | Task | Command |
 |------|---------|
 | Check version | `pixi run -e env-cm2 comparem2 --version` |
-| Dry run | `comparem2 --configfile config/config_comparem2.yaml --config input_genomes="*.fa" ... --dry-run` |
+| Dry run | `comparem2 --profile $COMPAREM2_PROFILE --configfile config/config_comparem2.yaml --config input_genomes="*.fa" ... --dry-run` |
 | Run all meta rules | `... --until meta` |
 | Run Q.C. only | `... --until checkm2 assembly_stats` |
 | Check status | `... --status` |

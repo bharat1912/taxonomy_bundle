@@ -1,31 +1,32 @@
-# CompareM2 Configuration
-# Uses existing vault databases to avoid re-downloading
-# Location: ~/software/taxonomy_bundle/config/config_comparem2.yaml
+# CompareM2 Configuration — taxonomy_bundle
+# March 2026
+#
+# USAGE: pixi run -e env-cm2 comparem2 \
+#            --configfile config/config_comparem2.yaml \
+#            --config input_genomes="path/to/*.fa" output_directory="results"
+#
+# This file OVERRIDES specific keys in CompareM2's default config.
+# All tool parameters (iqtree, mashtree, prokka flags etc.) come from
+# the default config at:
+# .pixi/envs/env-cm2/share/comparem2-2.16.2-0/config/config.yaml
+#
+# IMPORTANT: Do NOT add trailing slash to output_directory.
+# Snakemake adds its own separator — trailing slash causes double // warnings.
+#
+# IMPORTANT: Do NOT set set_bakta--db here.
+# CompareM2 finds bakta via the flag file symlink at:
+# comparem2_db/cm2_v2.16/bakta/db -> /media/bharat/volume1/databases/bakta
+# Setting set_bakta--db causes --db to be passed twice to bakta → error.
+#
+# IMPORTANT: Do NOT set set_checkm2--database_path here.
+# CheckM2 DB is handled by CHECKM2DB env variable set in pixi.toml.
 
-# Annotator choice: bakta (recommended) or prokka
 annotator: "bakta"
 
-# Output directory (override per-run with --config output_directory=...)
-output_directory: "results_comparem2"
-
-# Database paths - point to existing vault databases
-# Bakta database (~90GB full, already installed)
-set_bakta--db: "/media/bharat/volume1/databases/bakta"
-
-# EggNOG database (~50GB, already installed)  
 set_eggnog--data_dir: "/media/bharat/volume1/databases/eggnog"
-
-# CheckM2 database (already installed)
-set_checkm2--database_path: "/media/bharat/volume1/databases/checkm2/CheckM2_database/uniref100.KO.1.dmnd"
-
-# GTDB-Tk database (already installed via db_link)
-# Handled by GTDBTK_DATA_PATH environment variable in pixi.toml
-
-# AMRFinder database (already in bakta dir)
 set_amrfinder--database: "/media/bharat/volume1/databases/bakta/amrfinderplus-db"
-
-# DBCan - needs downloading (not in vault)
-# set_dbcan--db_dir: "/media/bharat/volume1/databases/dbcan"
-
-# AntiSMASH database (already installed)
 set_antismash--databases: "/media/bharat/volume1/databases/antismash"
+
+# DBCan — uncomment after verifying flag file exists at:
+# /media/bharat/volume1/databases/comparem2_db/cm2_v2.16/dbcan/comparem2_dbcan_database_representative.flag
+# set_dbcan--db_dir: "/media/bharat/volume1/databases/comparem2_db/cm2_v2.16/dbcan"
