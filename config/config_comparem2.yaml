@@ -1,32 +1,22 @@
 # CompareM2 Configuration — taxonomy_bundle
 # March 2026
-#
 # USAGE: pixi run -e env-cm2 comparem2 \
 #            --configfile config/config_comparem2.yaml \
 #            --config input_genomes="path/to/*.fa" output_directory="results"
 #
-# This file OVERRIDES specific keys in CompareM2's default config.
-# All tool parameters (iqtree, mashtree, prokka flags etc.) come from
-# the default config at:
-# .pixi/envs/env-cm2/share/comparem2-2.16.2-0/config/config.yaml
-#
-# IMPORTANT: Do NOT add trailing slash to output_directory.
-# Snakemake adds its own separator — trailing slash causes double // warnings.
-#
-# IMPORTANT: Do NOT set set_bakta--db here.
-# CompareM2 finds bakta via the flag file symlink at:
-# comparem2_db/cm2_v2.16/bakta/db -> /media/bharat/volume1/databases/bakta
-# Setting set_bakta--db causes --db to be passed twice to bakta → error.
-#
-# IMPORTANT: Do NOT set set_checkm2--database_path here.
-# CheckM2 DB is handled by CHECKM2DB env variable set in pixi.toml.
+# IMPORTANT: output_directory must be pre-created with mkdir -p
+# IMPORTANT: Use absolute path without trailing slash for output_directory
+
+# Default output directory (relative - override per run)
+output_directory: "results_comparem2"
 
 annotator: "bakta"
 
-set_eggnog--data_dir: "/media/bharat/volume1/databases/eggnog"
-set_amrfinder--database: "/media/bharat/volume1/databases/bakta/amrfinderplus-db"
-set_antismash--databases: "/media/bharat/volume1/databases/antismash"
+# Skip AMRFinder inside bakta
+# (version mismatch between container bakta and vault amrfinderplus-db)
+set_bakta--skip-amr: ""
 
-# DBCan — uncomment after verifying flag file exists at:
-# /media/bharat/volume1/databases/comparem2_db/cm2_v2.16/dbcan/comparem2_dbcan_database_representative.flag
-# set_dbcan--db_dir: "/media/bharat/volume1/databases/comparem2_db/cm2_v2.16/dbcan"
+set_eggnog--data_dir: "/media/bharat/volume1/databases/eggnog"
+set_amrfinder--database: "/media/bharat/volume1/databases/bakta/amrfinderplus-db/latest"
+set_antismash--databases: "/media/bharat/volume1/databases/antismash"
+set_dbcan--db_dir: "/media/bharat/volume1/databases/comparem2_db/cm2_v2.16/dbcan"
