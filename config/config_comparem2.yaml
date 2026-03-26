@@ -1,0 +1,31 @@
+# CompareM2 Configuration
+# Uses existing vault databases to avoid re-downloading
+# Location: ~/software/taxonomy_bundle/config/config_comparem2.yaml
+
+# Annotator choice: bakta (recommended) or prokka
+annotator: "bakta"
+
+# Output directory (override per-run with --config output_directory=...)
+output_directory: "results_comparem2"
+
+# Database paths - point to existing vault databases
+# Bakta database (~90GB full, already installed)
+set_bakta--db: "/media/bharat/volume1/databases/bakta"
+
+# EggNOG database (~50GB, already installed)  
+set_eggnog--data_dir: "/media/bharat/volume1/databases/eggnog"
+
+# CheckM2 database (already installed)
+set_checkm2--database_path: "/media/bharat/volume1/databases/checkm2/CheckM2_database/uniref100.KO.1.dmnd"
+
+# GTDB-Tk database (already installed via db_link)
+# Handled by GTDBTK_DATA_PATH environment variable in pixi.toml
+
+# AMRFinder database (already in bakta dir)
+set_amrfinder--database: "/media/bharat/volume1/databases/bakta/amrfinderplus-db"
+
+# DBCan - needs downloading (not in vault)
+# set_dbcan--db_dir: "/media/bharat/volume1/databases/dbcan"
+
+# AntiSMASH database (already installed)
+set_antismash--databases: "/media/bharat/volume1/databases/antismash"
