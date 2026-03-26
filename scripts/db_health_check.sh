@@ -113,7 +113,13 @@ check_db_robust "Kraken2" \
     "$EXTERNAL_VAULT/kraken2/opts.k2d"
 
 # CompareM2: Genome comparison
-check_db_robust "CompareM2" "$EXTERNAL_VAULT/comparem2_db"
+check_db_robust "CompareM2-Bakta"    "$EXTERNAL_VAULT/comparem2_db/cm2_v2.16/bakta/comparem2_bakta_database_representative.flag"
+check_db_robust "CompareM2-CheckM2"  "$EXTERNAL_VAULT/comparem2_db/cm2_v2.16/checkm2/comparem2_checkm2_database_representative.flag"
+check_db_robust "CompareM2-EggNOG"   "$EXTERNAL_VAULT/comparem2_db/cm2_v2.16/eggnog/comparem2_eggnog_database_representative.flag"
+check_db_robust "CompareM2-DBCan"    "$EXTERNAL_VAULT/comparem2_db/cm2_v2.16/dbcan/comparem2_dbcan_database_representative.flag"
+check_db_robust "CompareM2-GTDB"     "$EXTERNAL_VAULT/comparem2_db/cm2_v2.16/gtdb/comparem2_gtdb_database_representative.flag"
+check_db_robust "CompareM2-AntiSMASH" "$EXTERNAL_VAULT/comparem2_db/cm2_v2.16/antismash/comparem2_antismash_database_representative.flag"
+check_db_robust "CompareM2-AMRFinder" "$EXTERNAL_VAULT/comparem2_db/cm2_v2.16/amrfinder/comparem2_amrfinder_database_representative.flag"
 
 # GToTree: Phylogenetics HMM sets
 check_db_robust "GToTree-HMMs" "$EXTERNAL_VAULT/gtotree/hmm_sets"
