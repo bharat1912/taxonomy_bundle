@@ -1,22 +1,44 @@
-# CompareM2 Configuration — taxonomy_bundle
+# CompareM2 Configuration — taxonomy_bundle GAB 106 MAGs
 # March 2026
-# USAGE: pixi run -e env-cm2 comparem2 \
-#            --configfile config/config_comparem2.yaml \
-#            --config input_genomes="path/to/*.fa" output_directory="results"
-#
-# IMPORTANT: output_directory must be pre-created with mkdir -p
-# IMPORTANT: Use absolute path without trailing slash for output_directory
-
-# Default output directory (relative - override per run)
-output_directory: "results_comparem2"
+# NOTE: All absolute paths below must be set to match your local vault.
+# They are intentionally not committed with real paths — see .env or pixi.toml activation.env for EXTERNAL_VAULT.
 
 annotator: "bakta"
 
-# Skip AMRFinder inside bakta
-# (version mismatch between container bakta and vault amrfinderplus-db)
-set_bakta--skip-amr: ""
+# Output directory — relative path is safe here; comparem2 CLI resolves it against --output
+# For vault runs, override via pixi.toml cm2-run task using --config output_directory=...
+# Example: "/media/youruser/volume1/databases/comparem2_GAB_106bins"
+output_directory: "results_comparem2"
 
-set_eggnog--data_dir: "/media/bharat/volume1/databases/eggnog"
-set_amrfinder--database: "/media/bharat/volume1/databases/bakta/amrfinderplus-db/latest"
-set_antismash--databases: "/media/bharat/volume1/databases/antismash"
-set_dbcan--db_dir: "/media/bharat/volume1/databases/comparem2_db/cm2_v2.16/dbcan"
+# --- Bakta ---
+set_bakta--meta: ""                    # Essential for MAGs — activates metagenome mode
+set_bakta--translation-table: 11
+set_bakta--gram: "\"?\""
+
+# --- EggNOG ---
+# Example: "/media/youruser/volume1/databases/eggnog"
+set_eggnog--data_dir: "SET_IN_LOCAL_ENV"
+set_eggnog-m: diamond
+
+# --- AntiSMASH ---
+# Example: "/media/youruser/volume1/databases/antismash"
+set_antismash--databases: "SET_IN_LOCAL_ENV"
+
+# --- DBCan ---
+# Example: "/media/youruser/volume1/databases/comparem2_db/cm2_v2.16/dbcan"
+set_dbcan--db_dir: "SET_IN_LOCAL_ENV"
+
+# --- AMRFinder: not set --- letting bakta use its container-bundled version
+# to avoid AMRFinder version mismatch with the bakta Apptainer image.
+# Only uncomment if you have confirmed a matching database version.
+# set_amrfinder--database: "SET_IN_LOCAL_ENV"
+
+# --- Trees ---
+set_fasttree-gtr: ""
+set_iqtree--boot: 100
+set_iqtree-m: GTR
+set_mashtree--genomesize: 5000000
+
+# --- Prokka (fallback annotator) ---
+set_prokka--kingdom: bacteria
+set_prokka--compliant: ""

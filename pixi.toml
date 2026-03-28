@@ -805,6 +805,7 @@ python = "3.10.*"
 comparem2 = ">=2.16.2"
 apptainer = "*"
 snakemake = { version = "*", channel = "bioconda" }
+r-base = "*"
 
 # Core tools called by CompareM2 rules (needed if Apptainer unavailable)
 #gtdbtk = ">=2.6.1,<3"
@@ -1059,16 +1060,6 @@ run-panaroo = "pixi run -e env-pan panaroo -i results/all_annotations/*.gff -o r
 # Ensure you are pointing to the newly downloaded 1.30 jar file
 aliview = "java -Xmx4G -jar $PIXI_PROJECT_ROOT/software/aliview-1.30.jar"
 
-# Usage: pixi run cm2-run -- --input ./my_genomes/*.fna --output ./cm2_results
-#cm2-run = { cmd = "pixi run -e env-cm2 comparem2 --profile $COMPAREM2_PROFILE --configfile config/config_comparem2.yaml $@", description = "Runs CompareM2 genome comparison pipeline" }
-#cm2-run = { cmd = "pixi run -e env-cm2 comparem2 --profile $COMPAREM2_PROFILE --configfile config/config_comparem2.yaml --config database_dir=$COMPAREM2_DATABASES $@", description = "Runs CompareM2 pipeline" }
-#cm2-run = { cmd = "pixi run -e env-cm2 comparem2 --profile \"$COMPAREM2_PROFILE\" --configfile config/config_comparem2.yaml --config database_dir=\"$COMPAREM2_DATABASES\" $@", description = "Runs CompareM2 pipeline" }
-# We add --singularity-args to 'bind' your external vault so the container can see it
-#cm2-run = { cmd = 'pixi run -e env-cm2 comparem2 --profile default --configfile config/config_comparem2.yaml --config database_dir="$COMPAREM2_DATABASES" --singularity-args "--bind $EXTERNAL_VAULT" $@', description = "Runs CompareM2 pipeline" }
-
-# Usage: pixi run cm2-help
-#cm2-help = { cmd = "pixi run -e env-cm2 comparem2 --help", description = "Shows CompareM2 usage" }
-#cm2-help = { cmd = "pixi run -e env-cm2 comparem2 --help", description = "Shows CompareM2 usage" }
 
 # ============================================================================
 # 1C. Heavyweight & Specialized Tasks (Dotted Tables)
@@ -1160,22 +1151,40 @@ cmd = "python $PIXI_PROJECT_ROOT/scripts/map_isolates.py \"${ISOLATE_PROTEINS_DI
 description = "Generate iTOL color strip for the 193-genome audit"
 cmd = "python $PIXI_PROJECT_ROOT/scripts/generate_itol_colors.py"
 
-# Comparem2 - Use the absolute path for both snakemake and the profile
+# =============================================================================
+# CompareM2 — GAB 106 MAGs run
+# Usage: pixi run -e env-cm2 cm2-run
+# =============================================================================
 [tasks.cm2-run]
-# Usage: pixi run cm2-run
-# Edit input_genomes and output_directory below before running
+# Usage: pixi run -e env-cm2 cm2-run
+#
+# Bind paths — edit to match your local drive layout before running.
+# Example bind paths used during development:
+#   /media/bharat/volume1 = databases vault drive (EggNOG, AntiSMASH, DBCan etc.)
+#   /media/bharat/volume2 = MAG input data drive (raw .fa files)
+# Replace these with your own mount points if different.
 cmd = """
-  mkdir -p $EXTERNAL_VAULT/comparem2_GAB_106bins &&
-  snakemake -s $COMPAREM2_BASE/workflow/Snakefile --profile $COMPAREM2_PROFILE --configfile $PIXI_PROJECT_ROOT/config/config_comparem2.yaml --config input_genomes="/media/bharat/volume2/MAGS_2023_Metawrap_final/MAGS_2023/5_BIN_REFINEMENT/metawrap_70_10_bins/*.fa" output_directory="$EXTERNAL_VAULT/comparem2_GAB_106bins" --use-singularity --singularity-args "--bind $EXTERNAL_VAULT --bind /media/bharat/volume2" --cores all --directory $EXTERNAL_VAULT/comparem2_GAB_106bins
+  echo "=== CompareM2 Pre-flight ===" &&
+  echo "  Snakefile : $COMPAREM2_BASE/workflow/Snakefile" &&
+  echo "  Profile   : $COMPAREM2_PROFILE" &&
+  echo "  Config    : $PIXI_PROJECT_ROOT/config/config_comparem2.yaml" &&
+  echo "  Databases : $COMPAREM2_DATABASES" &&
+  echo "  Output dir: $EXTERNAL_VAULT/comparem2_GAB_106bins" &&
+  echo "  Input glob: /media/bharat/volume2/MAGS_2023_Metawrap_final/MAGS_2023/5_BIN_REFINEMENT/metawrap_70_10_bins/*.fa" &&
+  echo "" &&
+  mkdir -p "$EXTERNAL_VAULT/comparem2_GAB_106bins" &&
+  comparem2 \
+    --input  "/media/bharat/volume2/MAGS_2023_Metawrap_final/MAGS_2023/5_BIN_REFINEMENT/metawrap_70_10_bins/*.fa" \
+    --output "$EXTERNAL_VAULT/comparem2_GAB_106bins" \
+    --cores  all \
+    --configfile "$PIXI_PROJECT_ROOT/config/config_comparem2.yaml" \
+    --singularity-args "--bind $COMPAREM2_BASE,$COMPAREM2_DATABASES,/media/bharat/volume1,/media/bharat/volume2,$(pwd)"
 """
-
 [tasks.cm2-run.env]
-COMPAREM2_BASE = "$PIXI_PROJECT_ROOT/.pixi/envs/env-cm2/share/comparem2-2.16.2-0"
-COMPAREM2_DATABASES  = "$EXTERNAL_VAULT/comparem2_db"
-COMPAREM2_PROFILE = "$PIXI_PROJECT_ROOT/.pixi/envs/env-cm2/share/comparem2-2.16.2-0/profile/apptainer/default"
-# Crucial: This prevents Snakemake from trying to use Conda inside the container
-SNAKEMAKE_USE_CONDA = "false"
-PATH = "$PIXI_PROJECT_ROOT/.pixi/envs/env-cm2/bin:$PATH"
+COMPAREM2_BASE      = "$PIXI_PROJECT_ROOT/.pixi/envs/env-cm2/share/comparem2-2.16.2-0"
+COMPAREM2_DATABASES = "$EXTERNAL_VAULT/comparem2_db"
+COMPAREM2_PROFILE   = "$PIXI_PROJECT_ROOT/.pixi/envs/env-cm2/share/comparem2-2.16.2-0/profile/apptainer/default"
+PATH                = "$PIXI_PROJECT_ROOT/.pixi/envs/env-cm2/bin:$PATH"
 
 
 # =============================================================================
