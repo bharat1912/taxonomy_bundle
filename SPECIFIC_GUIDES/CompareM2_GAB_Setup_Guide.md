@@ -789,6 +789,20 @@ The Snakemake profile at `.pixi/envs/env-cm2/share/comparem2-2.16.2-0/profile/`
 will be overwritten by `pixi install` after any CompareM2 upgrade. The working
 profile content is documented in Section 4 and must be re-applied after upgrades.
 
+After any CompareM2 upgrade, also check the Snakemake version before re-applying
+the profile — the flag names changed between Snakemake 7.x and 8/9.x:
+```bash
+pixi run -e env-cm2 snakemake --version
+```
+
+If it returns 8.x or 9.x, update these keys throughout the profile:
+
+| Snakemake 7.x (current) | Snakemake 8/9.x |
+|---|---|
+| `use-singularity: true` | `use-apptainer: true` |
+| `singularity-args: '...'` | `apptainer-args: '...'` |
+| `singularity-prefix: '...'` | `apptainer-prefix: '...'` |
+
 ### 10.7 COMPAREM2_BASE not expanding in profile singularity-args
 The original profile used `'--bind "$COMPAREM2_BASE","$COMPAREM2_DATABASES",...'`
 but environment variables inside single-quoted YAML strings are not expanded by
@@ -868,6 +882,3 @@ pixi run -e env-cm2 bash -c "
   "
   ```
 
----
-
-*taxonomy_bundle — CompareM2 v2.16.2 — https://comparem2.readthedocs.io*
