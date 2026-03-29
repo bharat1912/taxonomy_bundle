@@ -34,6 +34,29 @@ it to coexist with 11 other environments in the same `pixi.toml`.
 | `downloads` | Download all databases |
 | `report` | Re-render the HTML report only |
 
+### Pipeline overview — all 20 tools and their dependencies
+
+The diagram below shows how all tools connect. Colour encodes the rule group.
+`copy` is the entry point; `report` is the final output. All other tools feed
+into the report either directly or through downstream dependencies.
+
+<p align="center">
+<img src="docs/figures/comparem2_pipeline_overview.svg" width="100%" alt="CompareM2 pipeline overview"/>
+</p>
+
+> If the SVG does not render, view the raw file at
+> `docs/figures/comparem2_pipeline_overview.svg`
+
+### Choosing what to run — the --until pseudo-rules
+
+Use `--until` to run only the tools you need. The diagram below shows which
+tools each pseudo-rule activates. The GAB MAG run used the full set (no
+`--until`) which runs all 982 jobs across 106 MAGs.
+
+<p align="center">
+<img src="docs/figures/comparem2_until_groups.svg" width="100%" alt="CompareM2 --until groups"/>
+</p>
+
 ### Architecture — important for troubleshooting
 
 - The `comparem2` CLI wrapper calls Snakemake internally

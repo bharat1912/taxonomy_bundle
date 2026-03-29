@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" viewBox="0 0 900 600">
+<style>
+  text { font-family: sans-serif; }
+  .th  { font-size: 13px; font-weight: 600; fill: #1a1a1a; }
+  .ts  { font-size: 11px; fill: #555; }
+  .hdr-gray   { fill: #e0ddd8; stroke: #888; }
+  .hdr-teal   { fill: #b8e8d8; stroke: #0f7a5a; }
+  .hdr-purple { fill: #d8d4f8; stroke: #5a4fc4; }
+  .hdr-amber  { fill: #fce4a0; stroke: #c47a10; }
+  .item { fill: none; stroke: #ccc; stroke-width: 0.8; stroke-dasharray: 3 2; }
+  .note { font-size: 11px; fill: #777; font-style: italic; }
+  .report-box { fill: none; stroke: #999; stroke-width: 1; stroke-dasharray: 5 3; }
+  line { stroke: #aaa; stroke-width: 0.7; fill: none; }
+</style>
+<defs>
+<marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#aaa" stroke-width="1.5" stroke-linecap="round"/>
+</marker>
+</defs>
+
+<!-- Column 1: fast -->
+<rect class="hdr-gray" x="20" y="20" width="180" height="46" rx="8" stroke-width="1"/>
+<text class="th" x="110" y="38" text-anchor="middle">--until fast</text>
+<text class="ts" x="110" y="56" text-anchor="middle">seconds — for testing</text>
+
+<rect class="item" x="20" y="78"  width="180" height="28" rx="4"/><text class="ts" x="110" y="97"  text-anchor="middle">assembly_stats</text>
+<rect class="item" x="20" y="110" width="180" height="28" rx="4"/><text class="ts" x="110" y="129" text-anchor="middle">sequence_lengths</text>
+<rect class="item" x="20" y="142" width="180" height="28" rx="4"/><text class="ts" x="110" y="161" text-anchor="middle">mashtree</text>
+
+<!-- Column 2: meta -->
+<rect class="hdr-teal" x="220" y="20" width="180" height="46" rx="8" stroke-width="1"/>
+<text class="th" x="310" y="38" text-anchor="middle">--until meta</text>
+<text class="ts" x="310" y="56" text-anchor="middle">MAGs — recommended</text>
+
+<rect class="item" x="220" y="78"  width="180" height="28" rx="4"/><text class="ts" x="310" y="97"  text-anchor="middle">assembly_stats</text>
+<rect class="item" x="220" y="110" width="180" height="28" rx="4"/><text class="ts" x="310" y="129" text-anchor="middle">sequence_lengths</text>
+<rect class="item" x="220" y="142" width="180" height="28" rx="4"/><text class="ts" x="310" y="161" text-anchor="middle">checkm2</text>
+<rect class="item" x="220" y="174" width="180" height="28" rx="4"/><text class="ts" x="310" y="193" text-anchor="middle">bakta / prokka</text>
+<rect class="item" x="220" y="206" width="180" height="28" rx="4"/><text class="ts" x="310" y="225" text-anchor="middle">eggnog</text>
+<rect class="item" x="220" y="238" width="180" height="28" rx="4"/><text class="ts" x="310" y="257" text-anchor="middle">kegg_pathway</text>
+<rect class="item" x="220" y="270" width="180" height="28" rx="4"/><text class="ts" x="310" y="289" text-anchor="middle">dbcan</text>
+<rect class="item" x="220" y="302" width="180" height="28" rx="4"/><text class="ts" x="310" y="321" text-anchor="middle">interproscan</text>
+<rect class="item" x="220" y="334" width="180" height="28" rx="4"/><text class="ts" x="310" y="353" text-anchor="middle">gtdbtk</text>
+<rect class="item" x="220" y="366" width="180" height="28" rx="4"/><text class="ts" x="310" y="385" text-anchor="middle">mashtree</text>
+
+<!-- Column 3: isolate -->
+<rect class="hdr-purple" x="420" y="20" width="180" height="46" rx="8" stroke-width="1"/>
+<text class="th" x="510" y="38" text-anchor="middle">--until isolate</text>
+<text class="ts" x="510" y="56" text-anchor="middle">clinical isolates</text>
+
+<rect class="item" x="420" y="78"  width="180" height="28" rx="4"/><text class="ts" x="510" y="97"  text-anchor="middle">annotation</text>
+<rect class="item" x="420" y="110" width="180" height="28" rx="4"/><text class="ts" x="510" y="129" text-anchor="middle">assembly_stats</text>
+<rect class="item" x="420" y="142" width="180" height="28" rx="4"/><text class="ts" x="510" y="161" text-anchor="middle">eggnog + kegg</text>
+<rect class="item" x="420" y="174" width="180" height="28" rx="4"/><text class="ts" x="510" y="193" text-anchor="middle">gtdbtk + mashtree</text>
+<rect class="item" x="420" y="206" width="180" height="28" rx="4"/><text class="ts" x="510" y="225" text-anchor="middle">mlst + amrfinder</text>
+<rect class="item" x="420" y="238" width="180" height="28" rx="4"/><text class="ts" x="510" y="257" text-anchor="middle">panaroo</text>
+<rect class="item" x="420" y="270" width="180" height="28" rx="4"/><text class="ts" x="510" y="289" text-anchor="middle">fasttree + snp_dists</text>
+
+<!-- Column 4: full run -->
+<rect class="hdr-amber" x="620" y="20" width="260" height="46" rx="8" stroke-width="1"/>
+<text class="th" x="750" y="38" text-anchor="middle">full run (no --until)</text>
+<text class="ts" x="750" y="56" text-anchor="middle">all 20 tools — 982 jobs for 106 MAGs</text>
+
+<rect class="item" x="620" y="78"  width="260" height="28" rx="4"/><text class="ts" x="750" y="97"  text-anchor="middle">everything in meta, plus:</text>
+<rect class="item" x="620" y="110" width="260" height="28" rx="4"/><text class="ts" x="750" y="129" text-anchor="middle">antismash</text>
+<rect class="item" x="620" y="142" width="260" height="28" rx="4"/><text class="ts" x="750" y="161" text-anchor="middle">gapseq_find + gapseq_fill</text>
+<rect class="item" x="620" y="174" width="260" height="28" rx="4"/><text class="ts" x="750" y="193" text-anchor="middle">panaroo</text>
+<rect class="item" x="620" y="206" width="260" height="28" rx="4"/><text class="ts" x="750" y="225" text-anchor="middle">fasttree + iqtree</text>
+<rect class="item" x="620" y="238" width="260" height="28" rx="4"/><text class="ts" x="750" y="257" text-anchor="middle">treecluster + snp_dists</text>
+<rect class="item" x="620" y="270" width="260" height="28" rx="4"/><text class="ts" x="750" y="289" text-anchor="middle">mlst + amrfinder</text>
+
+<!-- Report -->
+<rect class="report-box" x="290" y="460" width="320" height="46" rx="8"/>
+<text class="th" x="450" y="479" text-anchor="middle">--until report</text>
+<text class="ts" x="450" y="496" text-anchor="middle">re-renders HTML report from existing results</text>
+
+<!-- arrows to report -->
+<line x1="310" y1="394" x2="380" y2="460" marker-end="url(#arr)"/>
+<line x1="510" y1="298" x2="450" y2="460" marker-end="url(#arr)"/>
+<line x1="750" y1="298" x2="530" y2="460" marker-end="url(#arr)"/>
+
+<!-- bottom note -->
+<text class="note" x="450" y="535" text-anchor="middle">Snakemake runs only the rules needed for the specified target — no redundant computation</text>
+<text class="note" x="450" y="555" text-anchor="middle">GAB MAG run: meta + antismash + gapseq + panaroo + fasttree + iqtree + treecluster + snp_dists</text>
+<text class="note" x="450" y="575" text-anchor="middle">Use --rerun-incomplete to resume after failure — completed jobs are not repeated</text>
+</svg>
