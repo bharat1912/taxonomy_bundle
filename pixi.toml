@@ -1559,3 +1559,54 @@ cmd = """
   fi
 """
 description = "Download DBCan v5 database from AWS S3 (~11GB) for CompareM2"
+
+# ============================================================================
+# CAT/BAT/RAT tasks — Taxonomic classification of MAGs
+# Ref: von Meijenfeldt et al. 2019 doi:10.1186/s13059-019-1817-x
+#      Hauptfeld et al. 2024 doi:10.1038/s41467-024-47155-1
+# Database: GTDB r214.1 (June 2023)
+# ============================================================================
+
+[tasks.bat-run]
+# Run BAT on all 106 GAB MAGs
+# Input:  MAG .fa files in bin folder
+# Output: /media/bharat/volume1/bat_GAB_106bins/
+# Usage:  pixi run -e env-cat bat-run
+cmd = """
+  mkdir -p /media/bharat/volume1/bat_GAB_106bins &&
+  CAT_pack bins \
+    --bin_folder /media/bharat/volume2/MAGS_2023_Metawrap_final/MAGS_2023/5_BIN_REFINEMENT/metawrap_70_10_bins \
+    --bin_suffix .fa \
+    --database_folder $CAT_DB/db \
+    --taxonomy_folder $CAT_DB/tax \
+    --out_prefix /media/bharat/volume1/bat_GAB_106bins/BAT \
+    --force \
+    --verbose \
+    2>&1 | tee /media/bharat/volume1/bat_GAB_106bins/bat_run.log
+"""
+description = "Run BAT on 106 GAB MAGs against GTDB r214.1 database"
+
+[tasks.bat-add-names]
+# Add taxonomy names to BAT output
+# Run after bat-run completes
+cmd = """
+  CAT_pack add_names \
+    --input_file /media/bharat/volume1/bat_GAB_106bins/BAT.bin2classification.txt \
+    --output_file /media/bharat/volume1/bat_GAB_106bins/BAT.bin2classification.names.txt \
+    --taxonomy_folder $CAT_DB/tax \
+    --only_official \
+    2>&1 | tee -a /media/bharat/volume1/bat_GAB_106bins/bat_run.log
+"""
+description = "Add official taxonomy names to BAT classification output"
+
+[tasks.bat-summarise]
+# Summarise BAT results
+# Run after bat-add-names completes
+cmd = """
+  CAT_pack summarise \
+    --input_file /media/bharat/volume1/bat_GAB_106bins/BAT.bin2classification.names.txt \
+    --output_file /media/bharat/volume1/bat_GAB_106bins/BAT.summary.txt \
+    2>&1 | tee -a /media/bharat/volume1/bat_GAB_106bins/bat_run.log
+  echo "BAT analysis complete. Results in /media/bharat/volume1/bat_GAB_106bins/"
+"""
+description = "Summarise BAT taxonomic classification results"
