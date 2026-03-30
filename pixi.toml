@@ -843,6 +843,30 @@ BUSCO_LINEAGE_SETS  = "$PIXI_PROJECT_ROOT/db_link/busco"
 # Keep the profile path if it's already working
 COMPAREM2_PROFILE   = "$PIXI_PROJECT_ROOT/.pixi/envs/env-cm2/share/comparem2-2.16.2-0/profile/apptainer/default"
 
+
+# ============================================================================
+# CAT/BAT/RAT feature stack (Contig/Bin/Read Annotation Tool)
+# Taxonomic classification of MAGs against GTDB or NCBI nr protein database
+# Uses protein-level LCA classification via DIAMOND — low RAM requirement
+# Ref: von Meijenfeldt et al. 2019 (Genome Biology) — doi:10.1186/s13059-019-1817-x
+#      Hauptfeld et al. 2024 (Nature Communications) — doi:10.1038/s41467-024-47155-1
+# ============================================================================
+[feature.cat-stack.dependencies]
+python = ">=3.8"
+cat = ">=6.0.1"          # bioconda — includes BAT and RAT
+diamond = ">=2.1"        # required for protein alignment
+
+[feature.cat-stack.activation.env]
+# Point to your CAT/BAT database location
+# CAT_DB = "/media/bharat/volume1/databases/cat_gtdb"
+
+# CAT/BAT database — GTDB r214.1 (June 2023)
+# db/  = DIAMOND protein database
+# tax/ = taxonomy nodes.dmp and names.dmp
+CAT_DB     = "$PIXI_PROJECT_ROOT/db_link/cat_gtdb"
+CAT_DB_DIR = "$PIXI_PROJECT_ROOT/db_link/cat_gtdb/db/2023-11-21_CAT.dmnd"
+CAT_TAX    = "$PIXI_PROJECT_ROOT/db_link/cat_gtdb/tax"
+
 # ============================================================================
 # 1. Environments
 # ============================================================================
@@ -895,6 +919,9 @@ env-salmon = { features = ["salmon-stack"], no-default-feature = true }
 # CompareM2 genome-to-report pipeline
 env-cm2 = { features = ["comparem2-stack"], no-default-feature = true }
 
+# CAT/BAT/RAT — MAG taxonomic classification via protein LCA
+env-cat = { features = ["cat-stack"], no-default-feature = true }
+
 
 # ===========================================================================
 # 1A. Environment Variables: (The Mapping)
@@ -927,6 +954,9 @@ PROKKA_DB          = "$CENTRAL_DB_PATH/prokka"
 SYMCLATRON_DB      = "$CENTRAL_DB_PATH/symclatron"
 DRAM_DB            = "$CENTRAL_DB_PATH/dram"
 ANTISMASH_DB       = "$CENTRAL_DB_PATH/antismash"
+CAT_DB             = "$CENTRAL_DB_PATH/cat_gtdb"
+CAT_DB_DIR         = "$CENTRAL_DB_PATH/cat_gtdb/db/2023-11-21_CAT.dmnd"
+CAT_TAX            = "$CENTRAL_DB_PATH/cat_gtdb/tax"
 EGGNOG_DATA_DIR    = "$CENTRAL_DB_PATH/eggnog"
 RDP_CLASSIFIER_DATA = "$CENTRAL_DB_PATH/rdp"
 
@@ -1073,7 +1103,7 @@ cmd = """
            "$EXTERNAL_VAULT/mytaxa" "$EXTERNAL_VAULT/krona" "$EXTERNAL_VAULT/prokka_db" \
            "$EXTERNAL_VAULT/antismash" "$EXTERNAL_VAULT/eggnog" "$EXTERNAL_VAULT/symclatron" \
            "$EXTERNAL_VAULT/miga_db" "$EXTERNAL_VAULT/tmp" "$EXTERNAL_VAULT/comparem2_db" \
-           "$EXTERNAL_VAULT/comparem2_conda" "$EXTERNAL_VAULT/kraken2" && \
+           "$EXTERNAL_VAULT/comparem2_conda" "$EXTERNAL_VAULT/cat_gtdb" "$EXTERNAL_VAULT/kraken2" && \
 
   echo "SOLIDIFYING: Establishing Portal at $PIXI_PROJECT_ROOT/db_link..." &&
   mkdir -p "$PIXI_PROJECT_ROOT/db_link" && \
@@ -1099,7 +1129,8 @@ cmd = """
   ln -sfn "$EXTERNAL_VAULT/comparem2_db" "$PIXI_PROJECT_ROOT/db_link/comparem2" && \
   ln -sfn "$EXTERNAL_VAULT/comparem2_conda" "$PIXI_PROJECT_ROOT/db_link/comparem2_conda" && \
   ln -sfn "$EXTERNAL_VAULT/kraken2" "$PIXI_PROJECT_ROOT/db_link/kraken2" && \
-  echo "SUCCESS: Full 18-Database Vault active at $EXTERNAL_VAULT"
+  ln -sfn "$EXTERNAL_VAULT/cat_gtdb/20231120_CAT_gtdb" "$PIXI_PROJECT_ROOT/db_link/cat_gtdb" && \
+  echo "SUCCESS: Full 19-Database Vault active at $EXTERNAL_VAULT"
 """
 description = "Universal Infrastructure: Provisions all docking bays and high-capacity temporary storage"
 
